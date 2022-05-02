@@ -1,0 +1,82 @@
+#!/usr/bin/make -rRf
+
+# Input files
+seqs_to_polish=None
+seqs_to_polish_notdir=$(notdir $(seqs))
+polishing_seqs=None
+
+# Common parameters
+K=32 28 24 20 # k values should be descending
+bfs=None
+t=4
+
+# ntEdit parameters
+NTEDIT_X=0.5
+NTEDIT_Y=0.5
+
+# Sealer parameters
+SEALER_P=10
+SEALER_B=1000
+
+# Set shell
+SHELL=bash -e -o pipefail
+ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
+# Set pipefail to ensure that all commands of a pipe succeed.
+SHELL=zsh -e -o pipefail
+# Report run time and memory usage with zsh.
+export REPORTTIME=1
+export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
+endif
+
+# Record run time and memory usage in a file using GNU time
+ifeq ($(time),true)
+ifneq ($(shell command -v gtime),)
+log_time=command gtime -v -o $@.time
+else
+log_time=command time -v -o $@.time
+endif
+else
+log_time=
+endif
+
+# Determine path to executables
+root=$(shell dirname $(realpath $(MAKEFILE_LIST)))
+
+.PHONY: clean
+.DELETE_ON_ERROR:
+.SECONDARY:
+
+all: $(seqs_to_polish_notdir).goldrush-edited.fa
+
+%.upper.fa: %.fa
+	$(log_time) $(root)/bin/to-upper $< $@
+
+%.upper.fq: %.fq
+	$(log_time) $(root)/bin/to-upper $< $@
+
+%.index: %
+	$(log_time) $(root)/src/build_index $< $@
+
+$(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
+	$(log_time) ntLink target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True
+
+$(seqs_to_polish_notdir).mapping.tsv: $(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv
+	$(log_time) awk '{ print $$1" "$$2" "$$3 }' $< >$@
+
+%.ntedited.fa: %.fa $(bfs)
+	$(log_time) $(root)/bin/run-ntedit $(basename $<) "$(bfs)" "$(K)" $(NTEDIT_X) $(NTEDIT_Y) $(t) $@
+
+%.prepd.fa: %.fa
+	$(log_time) $(root)/bin/mask-short-sequences -s -k$(firstword $(K)) $< >$@
+
+%.sealer_scaffold.fa: %.fa $(bfs)
+	$(log_time) abyss-sealer -v -S $< \
+	-o $*.sealer -L$(firstword $(K)) -j$(t) -P$(SEALER_P) -B$(SEALER_B) --lower \
+	$(foreach k,$(K),-k$(k)) \
+	$(foreach bf,$(bfs),--input-bloom=$(bf))
+
+clean:
+	rm -f *.index *.mapping.tsv
+	rm -f *.k32.w100.z1000.verbose_mapping.tsv *.k32.w100.tsv *.k32.w100.z1000.n1.scaffold.dot *.k32.w100.z1000.pairs.tsv
+
+

@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+import shutil
+import os
+import time
+import signal
+import atexit
+import sys
+import argparse
+
+from .polish_utils import wait_till_parent_ends
+
+EXIT_FAILURE = -1
+CLEANING_DELAY = 3  # Seconds
+
+
+def get_cli_args():
+    parser = argparse.ArgumentParser(
+        "Remove all files starting with the given prefix from the given workspace once the calling process ends."
+    )
+    parser.add_argument(
+        "workspace_path", help="The path to where all the polishing is taking place."
+    )
+    parser.add_argument(
+        "prefix", help="Unique prefix of all the files that should be cleaned up."
+    )
+    return parser.parse_args()
+
+
+def cleanup(workspace_path, prefix):
+    time.sleep(CLEANING_DELAY)
+    for f in os.listdir(workspace_path):
+        if f.startswith(prefix):
+            shutil.rmtree(os.path.join(workspace_path, f), ignore_errors=True)
+
+
+def handle_exit(workspace_path, prefix):
+    def handler(signum, frame):
+        cleanup(workspace_path, prefix)
+        sys.exit(EXIT_FAILURE)
+
+    signal.signal(signal.SIGPIPE, handler)
+    signal.signal(signal.SIGSEGV, handler)
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, handler)
+    atexit.register(lambda: cleanup(workspace_path, prefix))
+
+
+if __name__ == "__main__":
+    args = get_cli_args()
+    handle_exit(args.workspace_path, args.prefix)
+
+    wait_till_parent_ends()
+
+    cleanup(args.workspace_path, args.prefix)

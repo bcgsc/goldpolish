@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+
+import os
+import argparse
+from os.path import join, dirname, realpath, abspath, isfile, exists, splitext, basename
+import subprocess as sp
+
+import btllib
+
+from .polish_utils import bind_to_parent
+
+
+def get_cli_args():
+    parser = argparse.ArgumentParser(
+        description="Request the Bloom filters and run the polishing protocol on the given sequences."
+    )
+    parser.add_argument("seqs_to_polish")
+    parser.add_argument("bfs_dir")
+    parser.add_argument("bf_name_template")
+    parser.add_argument(
+        "-k", action="append", default=[], help="List of k values to use for polishing."
+    )
+    parser.add_argument("--seq-ids", default="seq_ids")
+    parser.add_argument("--bfs_ids_pipe", default="targeted_input")
+    parser.add_argument("--bfs_ready_pipe", default="targeted_ready")
+    parser.add_argument("--polishing_done_pipe", default="polishing_done")
+    parser.add_argument("-t", "--threads", type=int, default=2)
+    parser.add_argument("-v", "--verbose", action="store_true")
+
+    args = parser.parse_args()
+
+    args.seqs_to_polish = abspath(args.seqs_to_polish)
+    assert len(args.k) > 0, "At least one k value must be specified."
+
+    return args
+
+
+def get_seq_ids(record_ids_filepath):
+    with open(record_ids_filepath) as records_file:
+        return [line.strip() for line in records_file]
+
+
+def get_bfs_ready(
+    bfs_dirpath, id_pipename, seq_ids, ready_pipename, bf_name_template, k_values
+):
+    with open(join(bfs_dirpath, id_pipename)) as id_pipe:
+        for id in seq_ids:
+            id_pipe.write(id + "\n")
+    with open(join(bfs_dirpath, ready_pipename)) as f:
+        f.read()
+
+    bfs = []
+    for k in k_values:
+        bf = bf_name_template.format(k)
+        bfs.append(join(bfs_dirpath, bf))
+    return bfs
+
+
+def run_polishing(seqs_to_polish, bfs, k_values, threads):
+    polished_seqs = (
+        f"{splitext(seqs_to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa"
+    )
+
+    bfs = " ".join(bfs)
+    k_values = " ".join(k_values)
+
+    sealer_protocol_process = sp.run(
+        [
+            f""" \
+    ntedit-sealer \
+    seqs_to_polish={seqs_to_polish} \
+    bfs='{bfs}' \
+    K='{k_values}' \
+    t={threads} \
+    {polished_seqs} \
+  """
+        ],
+        shell=True,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    return sealer_protocol_process.stdout, sealer_protocol_process.stderr
+
+
+def cleanup_bfs(bfs_dirpath, bfs):
+    for bf in bfs:
+        os.remove(join(bfs_dirpath, bf))
+
+
+def confirm_polishing_done(polishing_done_pipepath):
+    with open(polishing_done_pipepath, "w") as f:
+        f.write(str(1))
+
+
+def print_info(stdout, stderr):
+    to_print = ""
+    print_next_lines = 0
+    for line in stderr.split("\n"):
+        line = line.strip()
+        if print_next_lines > 0:
+            to_print += f"{line}"
+            print_next_lines -= 1
+            if print_next_lines == 0:
+                to_print += ")\n"
+            else:
+                to_print += ", "
+        elif "No start/goal kmer" in line:
+            print_next_lines = 11
+            to_print += f"({line}, "
+        elif "Gaps closed = " in line:
+            print_next_lines = 1
+            to_print += f"{line} ("
+    btllib.log_info(to_print)
+
+
+if __name__ == "__main__":
+    args = get_cli_args()
+
+    bind_to_parent()
+
+    seq_ids = get_seq_ids(args.seq_ids)
+    bfs = get_bfs_ready(args.bfs_dir)
+
+    polishing_stdout, polishing_stderr = run_polishing(
+        args.seqs_to_polish, bfs, args.k, args.threads
+    )
+
+    cleanup_bfs(args.bfs_dir, bfs)
+
+    if args.verbose:
+        print_info(polishing_stdout, polishing_stderr)
+
+    confirm_polishing_done(args.polishing_done_pipe)

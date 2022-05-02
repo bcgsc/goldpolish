@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+from os.path import join, dirname, realpath
+
+import btllib
+
+
+def get_cli_args():
+    parser = argparse.ArgumentParser(
+        description="Convert input sequence characters to upper case."
+    )
+    parser.add_argument("seqs_path")
+    parser.add_argument("output_path")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = get_cli_args()
+
+    with btllib.SeqReader(args.seqs_path, btllib.SeqReaderFlag.LONG_MODE) as reader:
+        if reader.get_format() == btllib.SeqReaderFormat.FASTA:
+            format = btllib.SeqWriterFormat.FASTA
+        else:
+            format = btllib.SeqWriterFormat.FASTQ
+        with btllib.SeqWriter(args.output_path, format) as writer:
+            for record in reader:
+                writer.write(record.id, record.comment, record.seq.upper(), record.qual)
