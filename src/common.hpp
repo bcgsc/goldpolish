@@ -4,28 +4,34 @@
 #include "btllib/bloom_filter.hpp"
 #include "btllib/counting_bloom_filter.hpp"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 #define FN_NAME (std::string(__FUNCTION__))
 
 using SeqId = std::string;
 
-struct Mapping {
+struct Mapping
+{
   SeqId seq_id;
   unsigned mx_in_common;
 
-  Mapping(const SeqId& seq_id, const unsigned mx_in_common) : seq_id(seq_id), mx_in_common(mx_in_common) {}
+  Mapping(const SeqId& seq_id, const unsigned mx_in_common)
+    : seq_id(seq_id)
+    , mx_in_common(mx_in_common)
+  {}
 };
 
-struct SeqCoordinates {
+struct SeqCoordinates
+{
   size_t seq_start, seq_len;
 
   SeqCoordinates(const size_t seq_start, const size_t seq_len)
     : seq_start(seq_start)
-    , seq_len(seq_len) {}
+    , seq_len(seq_len)
+  {}
 };
 
 using Mappings = std::vector<Mapping>;
@@ -39,16 +45,30 @@ void
 load_index(Index& index, const std::string& filepath);
 
 void
-load_mappings(AllMappings& all_mappings, const std::string& filepath, const Index& target_seqs_index, unsigned mx_threshold_min, unsigned mx_threshold_max, double mx_max_mapped_seqs_per_target_10kbp);
+load_mappings(AllMappings& all_mappings,
+              const std::string& filepath,
+              const Index& target_seqs_index,
+              unsigned mx_threshold_min,
+              unsigned mx_threshold_max,
+              double mx_max_mapped_seqs_per_target_10kbp);
 
 void
-load_mappings_sam(AllMappings& all_mappings, const std::string& filepath, const Index& target_seqs_index);
+load_mappings_ntlink(AllMappings& all_mappings,
+                     const std::string& filepath,
+                     const Index& target_seqs_index,
+                     unsigned mx_threshold_min);
 
 void
-load_mappings_ntlink(AllMappings& all_mappings, const std::string& filepath, const Index& target_seqs_index, unsigned mx_threshold_min);
+load_mappings_sam(AllMappings& all_mappings,
+                  const std::string& filepath,
+                  const Index& target_seqs_index);
 
 void
-filter_mappings(AllMappings& all_mappings, double max_mapped_seqs_per_target_10kbp, unsigned mx_threshold_min, unsigned mx_threshold_max, Index& target_seqs_index);
+filter_mappings(AllMappings& all_mappings,
+                double max_mapped_seqs_per_target_10kbp,
+                unsigned mx_threshold_min,
+                unsigned mx_threshold_max,
+                Index& target_seqs_index);
 
 void
 fill_bfs(const char* seq,
@@ -65,8 +85,10 @@ fill_bfs(const std::string& seq,
          const std::vector<unsigned>& k_values,
          unsigned kmer_threshold,
          std::vector<std::unique_ptr<btllib::KmerCountingBloomFilter8>>& cbfs,
-         std::vector<std::unique_ptr<btllib::KmerBloomFilter>>& bfs) {
-   fill_bfs(seq.c_str(), seq.size(), hash_num, k_values, kmer_threshold, cbfs, bfs);
+         std::vector<std::unique_ptr<btllib::KmerBloomFilter>>& bfs)
+{
+  fill_bfs(
+    seq.c_str(), seq.size(), hash_num, k_values, kmer_threshold, cbfs, bfs);
 }
 
 void
@@ -81,7 +103,7 @@ get_seq_with_index(const std::string& id,
                    const Index& index,
                    const std::string& seqs_filepath)
 {
-  thread_local static std::ifstream *seqs_file;
+  thread_local static std::ifstream* seqs_file;
   thread_local static bool seqs_file_initialized = false;
 
   static const size_t max_seqlen = 1024ULL * 1024ULL;
@@ -100,7 +122,8 @@ get_seq_with_index(const std::string& id,
 
   const auto& coords = index.at(id);
   const auto seq_len = coords.seq_len;
-  btllib::check_error(seq_len >= max_seqlen, FN_NAME + ": Seq size over max limit.");
+  btllib::check_error(seq_len >= max_seqlen,
+                      FN_NAME + ": Seq size over max limit.");
   seqs_file->seekg(coords.seq_start);
   seqs_file->read(seq, seq_len);
   seq[seq_len] = '\0';

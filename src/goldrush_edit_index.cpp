@@ -1,9 +1,11 @@
 #include <cstdlib>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 
-void build_index(const std::string& seqs_filepath, const std::string& index_filepath) {
+void
+build_index(const std::string& seqs_filepath, const std::string& index_filepath)
+{
   std::ifstream seqsfile(seqs_filepath);
   std::ofstream indexfile(index_filepath);
 
@@ -20,7 +22,8 @@ void build_index(const std::string& seqs_filepath, const std::string& index_file
         id_endbyte = endbyte;
         id = btllib::split(line, " ")[0].substr(1);
       } else if (i % 4 == 1) {
-        indexfile << id << '\t' << id_startbyte << '\t' << id_endbyte << '\t' << endbyte << '\n';
+        indexfile << id << '\t' << id_startbyte << '\t' << id_endbyte << '\t'
+                  << endbyte << '\n';
       }
     } else {
       if (i % 2 == 0) {
@@ -28,7 +31,8 @@ void build_index(const std::string& seqs_filepath, const std::string& index_file
         id_endbyte = endbyte;
         id = btllib::split(line, " ")[0].substr(1);
       } else {
-        indexfile << id << '\t' << id_startbyte << '\t' << id_endbyte << '\t' << endbyte << '\n';
+        indexfile << id << '\t' << id_startbyte << '\t' << id_endbyte << '\t'
+                  << endbyte << '\n';
       }
     }
     byte = endbyte + 1;
@@ -36,7 +40,9 @@ void build_index(const std::string& seqs_filepath, const std::string& index_file
   }
 }
 
-int main (int argc, char** argv) {
+int
+main(int argc, char** argv)
+{
   if (argc != 3) {
     std::cerr << "Wrong args.\n";
     std::exit(EXIT_FAILURE);
@@ -46,6 +52,6 @@ int main (int argc, char** argv) {
   const auto index_filepath = argv[arg++];
 
   build_index(seqs_filepath, index_filepath);
-  
+
   return 0;
 }

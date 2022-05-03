@@ -82,8 +82,6 @@ load_mappings(AllMappings& all_mappings, const std::string& filepath, const Inde
 }
 
 void load_mappings_ntlink(AllMappings& all_mappings, const std::string& filepath, const Index& target_seqs_index, const unsigned mx_threshold_min) {
-  static const std::string fn_name(__FUNCTION__);
-
   btllib::log_info(FN_NAME + ": Loading mappings from " + filepath + "... ");
 
   // Parameter sanity check
