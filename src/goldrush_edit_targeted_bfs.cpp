@@ -1,4 +1,4 @@
-#include "utils.hpp"
+#include "common.hpp"
 
 #include "btllib/status.hpp"
 #include "btllib/bloom_filter.hpp"
@@ -23,47 +23,46 @@
 #include <unistd.h>
 #include <omp.h>
 
-static const double SUBSAMPLE_MAX_READS_PER_CONTIG_10KBP = 120.0;
-static const double MX_MAX_READS_PER_CONTIG_10KBP = 150.0;
+static const double MX_MAX_MAPPED_SEQS_PER_TARGET_10KBP = 150.0;
+static const double SUBSAMPLE_MAX_MAPPED_SEQS_PER_TARGET_10KBP = 120.0;
 static const unsigned MX_THRESHOLD_MIN = 1;
 static const unsigned MX_THRESHOLD_MAX = 30;
-static const std::string INPIPE = "input";
-static const std::string CONFIRMPIPE = "confirm";
+static const std::string BATCH_INPIPE = "input";
+static const std::string BATCH_CONFIRMPIPE = "confirm";
 static const std::string SEPARATOR = "_";
 static const std::string BF_EXTENSION = ".bf";
 static const std::string END_SYMBOL = "x";
 
 namespace opt {
-  std::string contigs_filepath;
-  std::string contigs_index_filepath;
-  std::string contigs_reads_filepath;
-  std::string reads_filepath;
-  std::string reads_index_filepath;
+  std::string target_seqs_filepath;
+  std::string target_seqs_index_filepath;
+  std::string mappings_filepath;
+  std::string mapped_seqs_filepath;
+  std::string mapped_seqs_index_filepath;
   size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL;
   size_t bf_bytes = 512ULL * 1024ULL;
-  unsigned kmer_threshold = 6;
+  unsigned kmer_threshold = 5;
   std::string prefix = "targeted";
-  std::vector<unsigned> ks = { 32, 28, 24, 20 };
-  bool ks_set = false;
+  std::vector<unsigned> k_values = { 32, 28, 24, 20 };
   unsigned hash_num = 4;
   unsigned threads = 7;
 }
 
 void
-serve_set(const std::string& set_prefix,
-          const std::string& set_input_pipepath,
-          const std::string& set_confirm_pipepath,
-          const std::vector<std::string>& bf_paths_base,
-          const std::vector<unsigned>& ks,
-          const size_t cbf_bytes,
-          const size_t bf_bytes,
-          const unsigned kmer_threshold,
-          const unsigned hash_num,
-          const std::string& contigs_filepath,
-          const Index& contigs_index,
-          const ReadsMapping& contigs_reads,
-          const std::string& reads_filepath,
-          const Index& reads_index)
+serve_batch(const std::string& batch_prefix,
+            const std::string& batch_input_pipepath,
+            const std::string& batch_confirm_pipepath,
+            const std::vector<std::string>& bf_paths_base,
+            const std::vector<unsigned>& ks,
+            const size_t cbf_bytes,
+            const size_t bf_bytes,
+            const unsigned kmer_threshold,
+            const unsigned hash_num,
+            const std::string& contigs_filepath,
+            const Index& contigs_index,
+            const Mappings& contigs_reads,
+            const std::string& reads_filepath,
+            const Index& reads_index)
 {
   std::vector<std::unique_ptr<btllib::KmerCountingBloomFilter8>> cbfs;
   std::vector<std::unique_ptr<btllib::KmerBloomFilter>> bfs;
@@ -75,13 +74,14 @@ serve_set(const std::string& set_prefix,
 
   std::vector<std::string> bf_paths;
   for (const auto& bf_path_suffix : bf_paths_base) {
-    bf_paths.push_back(set_prefix + SEPARATOR + bf_path_suffix);
+    bf_paths.push_back(batch_prefix + SEPARATOR + bf_path_suffix);
   }
 
   std::string contig_id;
-  std::ifstream inputstream(set_input_pipepath);
+  std::ifstream inputstream(batch_input_pipepath);
   while (inputstream >> contig_id && contig_id != END_SYMBOL) {
     const auto [contig_seq, contig_len] = get_seq_with_index<1>(contig_id, contigs_index, contigs_filepath);
+    (void)contig_seq;
 
     const auto contigs_reads_it = contigs_reads.find(contig_id);
     if (
@@ -113,17 +113,17 @@ serve_set(const std::string& set_prefix,
     bfs[i]->save(bf_paths[i]);
   }
 
-  std::ofstream outputstream(set_confirm_pipepath);
+  std::ofstream outputstream(batch_confirm_pipepath);
   outputstream << "1" << std::endl;
   outputstream.close();
 
-  std::remove(set_input_pipepath.c_str());
-  std::remove(set_confirm_pipepath.c_str());
+  std::remove(batch_input_pipepath.c_str());
+  std::remove(batch_confirm_pipepath.c_str());
 }
 
 void serve(const std::string& contigs_filepath,
            const Index& contigs_index,
-           const ReadsMapping& contigs_reads,
+           const Mappings& contigs_reads,
            const std::string& reads_filepath,
            const Index& reads_index,
            const std::string& bf_prefix,
@@ -148,7 +148,7 @@ void serve(const std::string& contigs_filepath,
   const auto confirm_pipepath_dirname = btllib::get_dirname(confirm_pipepath);
   const auto confirm_pipepath_basename = btllib::get_basename(confirm_pipepath);
 
-  std::string set_prefix;
+  std::string batch_prefix;
 
   btllib::log_info(std::string("Accepting contig requests at ") + input_pipepath);
 #pragma omp parallel
@@ -156,22 +156,22 @@ void serve(const std::string& contigs_filepath,
   while (true) {
     std::ifstream inputstream(input_pipepath);
 
-    if (!(inputstream >> set_prefix)) { break; }
+    if (!(inputstream >> batch_prefix)) { break; }
     inputstream.close();
-    if (set_prefix == END_SYMBOL) { break; }
+    if (batch_prefix == END_SYMBOL) { break; }
 
-    const auto set_input_pipepath = input_pipepath_dirname + '/' + set_prefix + SEPARATOR + input_pipepath_basename;
-    const auto set_confirm_pipepath = confirm_pipepath_dirname + '/' + set_prefix + SEPARATOR + confirm_pipepath_basename;
+    const auto batch_input_pipepath = input_pipepath_dirname + '/' + batch_prefix + SEPARATOR + input_pipepath_basename;
+    const auto batch_confirm_pipepath = confirm_pipepath_dirname + '/' + batch_prefix + SEPARATOR + confirm_pipepath_basename;
 
-    btllib::check_error(mkfifo(set_input_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0, "mkfifo failed.");
-    btllib::check_error(mkfifo(set_confirm_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0, "mkfifo failed.");
+    btllib::check_error(mkfifo(batch_input_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0, "mkfifo failed.");
+    btllib::check_error(mkfifo(batch_confirm_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0, "mkfifo failed.");
 
     std::ofstream outputstream(confirm_pipepath);
     outputstream << "1" << std::endl;
     outputstream.close();
 
-#pragma omp task firstprivate(set_prefix, set_input_pipepath, set_confirm_pipepath) shared(bf_paths_base, ks, contigs_filepath, contigs_index, contigs_reads, reads_filepath, reads_index)
-    serve_set(set_prefix, set_input_pipepath, set_confirm_pipepath, bf_paths_base, ks, cbf_bytes, bf_bytes, kmer_threshold, hash_num, contigs_filepath, contigs_index, contigs_reads, reads_filepath, reads_index);
+#pragma omp task firstprivate(batch_prefix, batch_input_pipepath, batch_confirm_pipepath) shared(bf_paths_base, ks, contigs_filepath, contigs_index, contigs_reads, reads_filepath, reads_index)
+    serve_batch(batch_prefix, batch_input_pipepath, batch_confirm_pipepath, bf_paths_base, ks, cbf_bytes, bf_bytes, kmer_threshold, hash_num, contigs_filepath, contigs_index, contigs_reads, reads_filepath, reads_index);
   }
   btllib::log_info("Targeted BF builder done!");
 
@@ -185,33 +185,28 @@ int main(int argc, char** argv) {
   bind_to_parent();
 
   unsigned arg = 1;
-  opt::contigs_filepath = argv[arg++];
-  opt::contigs_index_filepath = argv[arg++];
-  opt::contigs_reads_filepath = argv[arg++];
-  opt::reads_filepath = argv[arg++];
-  opt::reads_index_filepath = argv[arg++];
+  opt::target_seqs_filepath = argv[arg++];
+  opt::target_seqs_index_filepath = argv[arg++];
+  opt::mappings_filepath = argv[arg++];
+  opt::mapped_seqs_filepath = argv[arg++];
+  opt::mapped_seqs_index_filepath = argv[arg++];
   opt::kmer_threshold = std::stoi(argv[arg++]);
 
   omp_set_nested(1);
   omp_set_num_threads(opt::threads);
 
-  Index reads_index, contigs_index;
-  load_index(contigs_index, opt::contigs_index_filepath);
-  load_index(reads_index, opt::reads_index_filepath);
+  Index target_seqs_index, mapped_seqs_index;
+  load_index(target_seqs_index, opt::target_seqs_index_filepath);
+  load_index(mapped_seqs_index, opt::mapped_seqs_index_filepath);
 
-  ReadsMapping contigs_reads;
-  if (btllib::endswith(opt::contigs_reads_filepath, ".sam") || btllib::endswith(opt::contigs_reads_filepath, ".bam")) {
-    load_reads_mapping_sam(contigs_reads, opt::contigs_reads_filepath, contigs_index);
-  } else {
-    load_reads_mapping(contigs_reads, opt::contigs_reads_filepath, contigs_index, MX_THRESHOLD_MIN);
-    filter_read_mappings(contigs_reads, MX_MAX_READS_PER_CONTIG_10KBP, MX_THRESHOLD_MIN, MX_THRESHOLD_MAX, contigs_index);
-  }
+  Mappings mappings;
+  load_mappings(mappings, opt::mappings_filepath, target_seqs_index, MX_THRESHOLD_MIN, MX_THRESHOLD_MAX, MX_MAX_MAPPED_SEQS_PER_TARGET_10KBP);
 
-  serve(opt::contigs_filepath,
-        contigs_index,
-        contigs_reads,
-        opt::reads_filepath,
-        reads_index,
+  serve(opt::target_seqs_filepath,
+        target_seqs_index,
+        mappings,
+        opt::mapped_seqs_filepath,
+        mapped_seqs_index,
         opt::prefix + SEPARATOR,
         opt::cbf_bytes,
         opt::bf_bytes,
@@ -219,7 +214,7 @@ int main(int argc, char** argv) {
         opt::prefix + SEPARATOR + INPIPE,
         opt::prefix + SEPARATOR + CONFIRMPIPE,
         opt::hash_num,
-        opt::ks);
+        opt::k_values);
 
   return 0;
 }

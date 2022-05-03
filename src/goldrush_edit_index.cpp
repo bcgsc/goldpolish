@@ -1,18 +1,11 @@
-#include "btllib/util.hpp"
-
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <string>
 
-int main (int argc, char** argv) {
-  if (argc != 3) {
-    std::cerr << "Wrong args.\n";
-    std::exit(EXIT_FAILURE);
-  }
-  unsigned arg = 1;
-  std::ifstream seqssfile(argv[arg++]);
-  std::ofstream indexfile(argv[arg++]);
+void build_index(const std::string& seqs_filepath, const std::string& index_filepath) {
+  std::ifstream seqsfile(seqs_filepath);
+  std::ofstream indexfile(index_filepath);
 
   bool fastq = seqsfile.peek() == '@' ? true : false;
 
@@ -41,5 +34,18 @@ int main (int argc, char** argv) {
     byte = endbyte + 1;
     i++;
   }
+}
+
+int main (int argc, char** argv) {
+  if (argc != 3) {
+    std::cerr << "Wrong args.\n";
+    std::exit(EXIT_FAILURE);
+  }
+  unsigned arg = 1;
+  const auto seqs_filepath = argv[arg++];
+  const auto index_filepath = argv[arg++];
+
+  build_index(seqs_filepath, index_filepath);
+  
   return 0;
 }

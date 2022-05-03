@@ -20,10 +20,13 @@ import time
 
 import btllib
 
-from .goldrush_edit_utils import get_random_name
+from .goldrush_edit_utils import get_random_name, watch_process
 
 SEQ_IDS_FILENAME = "seq_ids"
-
+BF_NAME_TEMPLATE = "targeted_k{}.bf"
+BFS_DIRNAME = "targeted_bfs"
+BFS_BATCH_INPUTPIPE = "targeted_batch"
+BFS_BATCH_CONFIRMPIPE = "targeted_confirm"
 
 def get_cli_args():
     parser = argparse.ArgumentParser()
@@ -46,8 +49,8 @@ def get_cli_args():
     return args
 
 
-def handle_sudden_exit(polishing_workspace, prefix):
-    process = sp.Popen(["goldrush-edit-cleanup", polishing_workspace, prefix])
+def autoclean(workspace, prefix):
+    process = sp.Popen(["goldrush-edit-autoclean", workspace, prefix])
     watch_process(process)
 
 
@@ -82,29 +85,29 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
 
 def run_bf_builder(
     bfs_dir,
-    to_polish,
-    to_polish_index,
-    to_polish_read_mapping,
-    reads,
-    reads_index,
+    seqs_to_polish,
+    seqs_to_polish_index,
+    mappings,
+    polishing_seqs,
+    polishing_seqs_index,
     kmer_threshold,
-    input_pipepath,
+    batch_pipepath,
 ):
     process = sp.Popen(
         [
             "build_targeted_bfs",
-            to_polish,
-            to_polish_index,
-            to_polish_read_mapping,
-            reads,
-            reads_index,
+            seqs_to_polish,
+            seqs_to_polish_index,
+            mappings,
+            polishing_seqs,
+            polishing_seqs_index,
             str(kmer_threshold),
         ],
         cwd=bfs_dir,
     )
     watch_process(process)
 
-    while not exists(input_pipepath):
+    while not exists(batch_pipepath):
         time.sleep(2)
     btllib.log_info("build_targeted_bfs is ready!")
 
@@ -182,32 +185,23 @@ def polish_seqs(
     k_values,
     kmer_threshold,
     batch_size,
+    workspace,
     verbose,
 ):
-    cwd = os.getcwd()
-
-    # Work in shared memory if possible
-    if isdir(SHARED_MEMORY_DIR):
-        polishing_workspace = SHARED_MEMORY_DIR
-    else:
-        polishing_workspace = cwd
-        btllib.log_warning(
-            f"{SHARED_MEMORY_DIR} not present. Polishing might run slower."
-        )
-
     prefix = get_random_name()
 
     # Where to build the Bloom filters
-    bfs_dir = make_tmp_dir(polishing_workspace, prefix, "targeted_bfs")
+    bfs_dir = make_tmp_dir(workspace, prefix, BFS_DIRNAME)
 
     # Pipes for communicating with the process building the Bloom filters
-    input_pipepath = join(bfs_dir, "targeted_input")
-    confirm_pipepath = join(bfs_dir, "targeted_confirm")
+    batch_input_pipepath = join(bfs_dir, BFS_BATCH_INPUTPIPE)
+    batch_confirm_pipepath = join(bfs_dir, BFS_BATCH_CONFIRMPIPE)
 
     # Bloom filter names
     bfs = ""
-    for k in K.split():
-        bfs += join(bfs_dir, f"targeted_k{k}.bf") + " "
+    for k in k_values:
+        bf_name = BF_NAME_TEMPLATE.format(k)
+        bfs += join(bfs_dir, bf_name) + " "
 
     # Temporary name for the contig(s) to polish
     contig_tmppath = "contig.tmp.fa"
@@ -283,6 +277,15 @@ def polish_seqs(
 if __name__ == "__main__":
     args = get_cli_args()
 
+    # Work in shared memory if possible
+    if isdir(args.shared_mem):
+        workspace = args.shared_mem
+    else:
+        workspace = os.getcwd()
+        btllib.log_warning(
+            f"GoldRush-Edit: {args.shared_mem} not present. Polishing might run slower."
+        )
+
     with btllib.SeqReader(
         args.seqs_to_polish, btllib.SeqReaderFlag.LONG_MODE
     ) as reader, btllib.SeqWriter(args.output) as writer:
@@ -294,5 +297,6 @@ if __name__ == "__main__":
             args.k,
             args.kmer_threshold,
             args.bsize,
+            workspace,
             args.verbose,
         )
