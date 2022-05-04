@@ -1,7 +1,7 @@
-utils_src = [ 'utils.cpp', 'utils.hpp' ]
+common = [ 'utils.cpp', 'utils.hpp', 'seqindex.cpp', 'seqindex.hpp', 'mappings.cpp', 'mappings.hpp' ]
 
-build_index_src = [ 'goldrush_edit_index.cpp' ] + utils_src
-build_targeted_bfs_src = [ 'goldrush_edit_targeted_bfs.cpp' ] + utils_src
+build_index_src = [ 'goldrush_edit_index.cpp' ] + common
+build_targeted_bfs_src = [ 'goldrush_edit_targeted_bfs.cpp' ] + common
 
 executable('goldrush-edit-index',
             build_index_src,

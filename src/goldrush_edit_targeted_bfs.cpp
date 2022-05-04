@@ -1,4 +1,6 @@
-#include "common.hpp"
+#include "utils.hpp"
+#include "seqindex.hpp"
+#include "mappings.hpp"
 
 #include "btllib/bloom_filter.hpp"
 #include "btllib/counting_bloom_filter.hpp"
@@ -27,9 +29,11 @@ static const double MX_MAX_MAPPED_SEQS_PER_TARGET_10KBP = 150.0;
 static const double SUBSAMPLE_MAX_MAPPED_SEQS_PER_TARGET_10KBP = 120.0;
 static const unsigned MX_THRESHOLD_MIN = 1;
 static const unsigned MX_THRESHOLD_MAX = 30;
-static const std::string BATCH_INPIPE = "input";
-static const std::string BATCH_CONFIRMPIPE = "confirm";
-static const std::string SEPARATOR = "_";
+static const std::string BATCH_NAME_INPUT_PIPE = "batch_name_input";
+static const std::string BATCH_MAPPED_IDS_INPUT_READY_PIPE = "batch_mapped_ids_input_ready";
+static const std::string MAPPED_IDS_INPUT_PIPE = "mapped_ids_input";
+static const std::string BFS_READY_PIPE = "bfs_ready";
+static const std::string SEPARATOR = "-";
 static const std::string BF_EXTENSION = ".bf";
 static const std::string END_SYMBOL = "x";
 
@@ -42,45 +46,45 @@ std::string mapped_seqs_index_filepath;
 size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL;
 size_t bf_bytes = 512ULL * 1024ULL;
 unsigned kmer_threshold = 5;
-std::string prefix = "targeted";
 std::vector<unsigned> k_values = { 32, 28, 24, 20 };
 unsigned hash_num = 4;
 unsigned threads = 7;
 }
 
 void
-serve_batch(const std::string& batch_prefix,
-            const std::string& batch_input_pipepath,
-            const std::string& batch_confirm_pipepath,
+serve_batch(const std::string& batch_name,
+            const std::string& batch_id_pipe_path,
+            const std::string& batch_confirm_pipe_path,
             const std::vector<std::string>& bf_paths_base,
-            const std::vector<unsigned>& ks,
+            const std::vector<unsigned>& k_values,
             const size_t cbf_bytes,
             const size_t bf_bytes,
             const unsigned kmer_threshold,
             const unsigned hash_num,
-            const std::string& contigs_filepath,
-            const Index& contigs_index,
-            const Mappings& contigs_reads,
-            const std::string& reads_filepath,
-            const Index& reads_index)
+            const std::string& target_seqs_filepath,
+            const Index& target_seqs_index,
+            const AllMappings& all_mappings,
+            const std::string& mapped_seqs_filepath,
+            const Index& mapped_seqs_index)
 {
+  // Initialize Bloom filters
   std::vector<std::unique_ptr<btllib::KmerCountingBloomFilter8>> cbfs;
   std::vector<std::unique_ptr<btllib::KmerBloomFilter>> bfs;
-
-  for (const auto k : ks) {
+  for (const auto k : k_values) {
     cbfs.push_back(std::make_unique<btllib::KmerCountingBloomFilter8>(
       cbf_bytes, hash_num, k));
     bfs.push_back(
       std::make_unique<btllib::KmerBloomFilter>(bf_bytes, hash_num, k));
   }
 
+  // Set Bloom filter paths
   std::vector<std::string> bf_paths;
   for (const auto& bf_path_suffix : bf_paths_base) {
     bf_paths.push_back(batch_prefix + SEPARATOR + bf_path_suffix);
   }
 
-  std::string contig_id;
-  std::ifstream inputstream(batch_input_pipepath);
+  std::string target_seq_id;
+  std::ifstream inputstream(batch_inpipe_path);
   while (inputstream >> contig_id && contig_id != END_SYMBOL) {
     const auto [contig_seq, contig_len] =
       get_seq_with_index<1>(contig_id, contigs_index, contigs_filepath);
@@ -120,109 +124,115 @@ serve_batch(const std::string& batch_prefix,
     bfs[i]->save(bf_paths[i]);
   }
 
-  std::ofstream outputstream(batch_confirm_pipepath);
-  outputstream << "1" << std::endl;
-  outputstream.close();
+  confirm_pipe(batch_confirm_pipepath);
 
   std::remove(batch_input_pipepath.c_str());
   std::remove(batch_confirm_pipepath.c_str());
 }
 
-void
-serve(const std::string& contigs_filepath,
-      const Index& contigs_index,
-      const Mappings& contigs_reads,
-      const std::string& reads_filepath,
-      const Index& reads_index,
-      const std::string& bf_prefix,
+bool
+process_batch_name(const SeqIndex& target_seqs_index,
+      const SeqIndex& mapped_seqs_index,
+      const AllMappings& all_mappings,
       const size_t cbf_bytes,
       const size_t bf_bytes,
       const unsigned kmer_threshold,
-      const std::string& input_pipepath,
-      const std::string& confirm_pipepath,
+      const std::string& batch_name_input_pipe,
+      const std::string& batch_mapped_ids_input_ready_pipe,
+      const std::string& mapped_ids_input_pipe,
+      const std::string& bfs_ready_pipe,
       const unsigned hash_num,
-      const std::vector<unsigned>& ks)
-{
-  btllib::check_error(kmer_threshold == 0, "k-mer threshold must be >0.");
-  btllib::check_error(mkfifo(input_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0,
-                      "mkfifo failed.");
-  btllib::check_error(mkfifo(confirm_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0,
-                      "mkfifo failed.");
+      const std::vector<unsigned>& k_values) {
+  std::string batch_name;
+  std::ifstream batch_name_input(batch_name_input_pipe);
 
-  std::vector<std::string> bf_paths_base;
-  for (const auto k : ks) {
-    bf_paths_base.push_back(std::string(bf_prefix) + "k" + std::to_string(k) +
-                            BF_EXTENSION);
+  if (!(batch_name_input >> batch_name)) {
+    return false;
+  }
+  batch_name_input.close();
+  if (batch_name == END_SYMBOL) {
+    return false;
   }
 
-  const auto input_pipepath_dirname = btllib::get_dirname(input_pipepath);
-  const auto input_pipepath_basename = btllib::get_basename(input_pipepath);
-  const auto confirm_pipepath_dirname = btllib::get_dirname(confirm_pipepath);
-  const auto confirm_pipepath_basename = btllib::get_basename(confirm_pipepath);
+    const auto batch_mapped_ids_input_pipe = batch_name + SEPARATOR +
+                                      mapped_ids_input_pipe;
+    const auto batch_bfs_ready_pipe = batch_name + SEPARATOR + bfs_ready_pipe;
 
-  std::string batch_prefix;
+    make_pipe(batch_mapped_ids_input_pipe);
+    make_pipe(batch_bfs_ready_pipe);
 
-  btllib::log_info(std::string("Accepting contig requests at ") +
-                   input_pipepath);
-#pragma omp parallel
-#pragma omp single
-  while (true) {
-    std::ifstream inputstream(input_pipepath);
+    confirm_pipe(batch_mapped_ids_input_ready_pipe);
 
-    if (!(inputstream >> batch_prefix)) {
-      break;
-    }
-    inputstream.close();
-    if (batch_prefix == END_SYMBOL) {
-      break;
-    }
-
-    const auto batch_input_pipepath = input_pipepath_dirname + '/' +
-                                      batch_prefix + SEPARATOR +
-                                      input_pipepath_basename;
-    const auto batch_confirm_pipepath = confirm_pipepath_dirname + '/' +
-                                        batch_prefix + SEPARATOR +
-                                        confirm_pipepath_basename;
-
-    btllib::check_error(
-      mkfifo(batch_input_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0,
-      "mkfifo failed.");
-    btllib::check_error(
-      mkfifo(batch_confirm_pipepath.c_str(), S_IRUSR | S_IWUSR) != 0,
-      "mkfifo failed.");
-
-    std::ofstream outputstream(confirm_pipepath);
-    outputstream << "1" << std::endl;
-    outputstream.close();
-
-#pragma omp task firstprivate(batch_prefix,                                    \
-                              batch_input_pipepath,                            \
-                              batch_confirm_pipepath) shared(bf_paths_base,    \
-                                                             ks,               \
-                                                             contigs_filepath, \
-                                                             contigs_index,    \
-                                                             contigs_reads,    \
-                                                             reads_filepath,   \
-                                                             reads_index)
-    serve_batch(batch_prefix,
-                batch_input_pipepath,
-                batch_confirm_pipepath,
-                bf_paths_base,
-                ks,
+#pragma omp task firstprivate(batch_name,                                    \
+                              batch_mapped_ids_input_pipe,                            \
+                              batch_mapped_ids_input_ready_pipe) shared(bf_names,    \
+                                                             k_values,               \
+                                                             target_seqs_index,    \
+                                                             all_mappings,    \
+                                                             mapped_seqs_index)
+    serve_batch(batch_name,
+                batch_mapped_ids_input_pipe,
+                batch_mapped_ids_input_ready_pipe,
+                bf_names,
+                k_values,
                 cbf_bytes,
                 bf_bytes,
                 kmer_threshold,
                 hash_num,
-                contigs_filepath,
-                contigs_index,
-                contigs_reads,
-                reads_filepath,
-                reads_index);
-  }
-  btllib::log_info("Targeted BF builder done!");
+                target_seqs_filepath,
+                target_seqs_index,
+                all_mappings,
+                mapped_seqs_filepath,
+                mapped_seqs_index);
 
-  std::remove(input_pipepath.c_str());
-  std::remove(confirm_pipepath.c_str());
+  return true;
+}
+
+void
+serve(const SeqIndex& target_seqs_index,
+      const SeqIndex& mapped_seqs_index,
+      const AllMappings& all_mappings,
+      const size_t cbf_bytes,
+      const size_t bf_bytes,
+      const unsigned kmer_threshold,
+      const std::string& batch_name_input_pipe,
+      const std::string& batch_mapped_ids_input_ready_pipe,
+      const std::string& mapped_ids_input_pipe,
+      const std::string& bfs_ready_pipe,
+      const unsigned hash_num,
+      const std::vector<unsigned>& k_values)
+{
+  btllib::check_error(kmer_threshold == 0, FN_NAME + ": k-mer threshold must be >0.");
+
+  make_pipe(batch_name_input_pipe);
+  make_pipe(batch_mapped_ids_input_ready_pipe);
+
+  std::vector<std::string> bf_names;
+  for (const auto k : ks) {
+    bf_names.push_back("k" + std::to_string(k) + BF_EXTENSION);
+  }
+
+  btllib::log_info(FN_NAME + ": Accepting batch names at " +
+                   batch_name_input_pipepath);
+#pragma omp parallel
+#pragma omp single
+  while (process_batch_name(target_seqs_index,
+      mapped_seqs_index,
+      all_mappings,
+      cbf_bytes,
+      bf_bytes,
+      kmer_threshold,
+      batch_name_input_pipe,
+      batch_mapped_ids_input_ready_pipe,
+      mapped_ids_input_pipe,
+      bfs_ready_pipe,
+      hash_num,
+      k_values)) {}
+
+  std::remove(batch_name_input_pipe.c_str());
+  std::remove(batch_mapped_ids_input_ready_pipe.c_str());
+
+  btllib::log_info(FN_NAME + ": Targeted BF builder done!");
 }
 
 int
@@ -243,29 +253,27 @@ main(int argc, char** argv)
   omp_set_nested(1);
   omp_set_num_threads(opt::threads);
 
-  Index target_seqs_index, mapped_seqs_index;
-  load_index(target_seqs_index, opt::target_seqs_index_filepath);
-  load_index(mapped_seqs_index, opt::mapped_seqs_index_filepath);
+  SeqIndex target_seqs_index(opt::target_seqs_index_filepath,
+                             opt::target_seqs_filepath);
+  SeqIndex mapped_seqs_index(opt::mapped_seqs_index_filepath,
+                             opt::mapped_seqs_filepath);
 
-  Mappings mappings;
-  load_mappings(mappings,
-                opt::mappings_filepath,
+  AllMappings all_mappings(opt::mappings_filepath,
                 target_seqs_index,
                 MX_THRESHOLD_MIN,
                 MX_THRESHOLD_MAX,
                 MX_MAX_MAPPED_SEQS_PER_TARGET_10KBP);
 
-  serve(opt::target_seqs_filepath,
-        target_seqs_index,
-        mappings,
-        opt::mapped_seqs_filepath,
+  serve(target_seqs_index,
         mapped_seqs_index,
-        opt::prefix + SEPARATOR,
+        all_mappings,
         opt::cbf_bytes,
         opt::bf_bytes,
         opt::kmer_threshold,
-        opt::prefix + SEPARATOR + INPIPE,
-        opt::prefix + SEPARATOR + CONFIRMPIPE,
+        BATCH_NAME_INPUT_PIPE,
+        BATCH_MAPPED_IDS_INPUT_READY_PIPE,
+        MAPPED_IDS_INPUT_PIPE,
+        BFS_READY_PIPE,
         opt::hash_num,
         opt::k_values);
 
