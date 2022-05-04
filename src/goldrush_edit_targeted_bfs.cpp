@@ -61,16 +61,16 @@ serve_batch(const SeqIndex& target_seqs_index,
   std::vector<std::unique_ptr<btllib::KmerCountingBloomFilter8>> cbfs;
   std::vector<std::unique_ptr<btllib::KmerBloomFilter>> bfs;
   for (const auto k : k_values) {
-    cbfs.push_back(std::make_unique<btllib::KmerCountingBloomFilter8>(
-      cbf_bytes, hash_num, k));
-    bfs.push_back(
-      std::make_unique<btllib::KmerBloomFilter>(bf_bytes, hash_num, k));
+    cbfs.push_back(std::unique_ptr<btllib::KmerCountingBloomFilter8>(
+      new btllib::KmerCountingBloomFilter8(cbf_bytes, hash_num, k)));
+    bfs.push_back(std::unique_ptr<btllib::KmerBloomFilter>(
+      new btllib::KmerBloomFilter(bf_bytes, hash_num, k)));
   }
 
   // Set Bloom filter paths
   std::vector<std::string> bf_full_names;
   for (const auto& bf_name : bf_names) {
-    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    // NOLINTNEXTLINE
     bf_full_names.push_back(batch_name + SEPARATOR + bf_name);
   }
 
@@ -96,7 +96,7 @@ serve_batch(const SeqIndex& target_seqs_index,
     // NOLINTNEXTLINE(google-readability-braces-around-statements,hicpp-braces-around-statements,readability-braces-around-statements)
     for (const auto mapped_id_idx : random_indices)
 #pragma omp task firstprivate(mapped_id_idx)                                   \
-  shared(bfs, cbfs, mappings, mapped_seqs_index, k_values) default(none)
+  shared(bfs, cbfs, mappings, mapped_seqs_index, k_values)
     {
       const auto mapped_id = mappings[mapped_id_idx].seq_id;
       const auto [seq, seq_len] = mapped_seqs_index.get_seq<1>(mapped_id);
@@ -148,11 +148,8 @@ process_batch_name(const SeqIndex& target_seqs_index,
 
 #pragma omp task firstprivate(                                                 \
   batch_name, batch_target_ids_input_pipe, batch_target_ids_input_ready_pipe)  \
-  shared(target_seqs_index,                                                    \
-         mapped_seqs_index,                                                    \
-         all_mappings,                                                         \
-         bf_names,                                                             \
-         k_values) default(none)
+  shared(                                                                      \
+    target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
   serve_batch(target_seqs_index,
               mapped_seqs_index,
               all_mappings,
@@ -193,20 +190,14 @@ serve(const SeqIndex& target_seqs_index,
 
   std::vector<std::string> bf_names;
   for (const auto k : k_values) {
+    // NOLINTNEXTLINE
     bf_names.push_back("k" + std::to_string(k) + BF_EXTENSION);
   }
 
   btllib::log_info(FN_NAME + ": Accepting batch names at " +
                    batch_name_input_pipe);
-#pragma omp parallel shared(target_seqs_index,                                 \
-                            mapped_seqs_index,                                 \
-                            all_mappings,                                      \
-                            batch_name_input_pipe,                             \
-                            batch_target_ids_input_ready_pipe,                 \
-                            target_ids_input_pipe,                             \
-                            bfs_ready_pipe,                                    \
-                            k_values,                                          \
-                            bf_names) default(none)
+
+#pragma omp parallel
 #pragma omp single
   while (process_batch_name(target_seqs_index,
                             mapped_seqs_index,

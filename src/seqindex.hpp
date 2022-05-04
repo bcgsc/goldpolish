@@ -71,9 +71,8 @@ SeqIndex::get_seq(const std::string& id) const
   const auto seq_len = coords.seq_len;
   btllib::check_error(seq_len >= max_seqlen,
                       FN_NAME + ": Seq size over max limit.");
-  seqs_file->seekg(std::ifstream::pos_type(
-    coords
-      .seq_start)); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+  // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+  seqs_file->seekg(std::ifstream::pos_type(coords.seq_start));
   seqs_file->read(seq, std::streamsize(seq_len));
   seq[seq_len] = '\0';
 
