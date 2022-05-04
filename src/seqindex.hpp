@@ -1,9 +1,14 @@
 #ifndef SEQINDEX_HPP
 #define SEQINDEX_HPP
 
+#include "utils.hpp"
+
+#include "btllib/status.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <fstream>
 
 struct SeqCoordinates
 {
@@ -25,10 +30,14 @@ public:
   SeqIndex(const SeqIndex&) = delete;
   SeqIndex& operator=(const SeqIndex&) = delete;
 
-  save(const std::string& filepath);
+  void save(const std::string& filepath);
 
   template<int i>
-  std::tuple<const char*, size_t> get_seq(const std::string& id);
+  std::tuple<const char*, size_t> get_seq(const std::string& id) const;
+
+  size_t get_seq_len(const std::string& id) const;
+
+  bool seq_exists(const std::string& id) const;
 
 private:
   std::string seqs_filepath;
@@ -37,7 +46,7 @@ private:
 
 template<int i>
 std::tuple<const char*, size_t>
-SeqIndex::get_seq(const std::string& id)
+SeqIndex::get_seq(const std::string& id) const
 {
   thread_local static std::ifstream* seqs_file;
   thread_local static bool seqs_file_initialized = false;

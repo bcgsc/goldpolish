@@ -1,4 +1,5 @@
 #include "mappings.hpp"
+#include "utils.hpp"
 
 #include "seqindex.hpp"
 
@@ -9,15 +10,17 @@
 #include <fstream>
 #include <string>
 
-AllMappings(const std::string& filepath,
+const Mappings AllMappings::empty_mappings;
+
+AllMappings::AllMappings(const std::string& filepath,
             const SeqIndex& target_seqs_index,
             unsigned mx_threshold_min,
             unsigned mx_threshold_max,
             double mx_max_mapped_seqs_per_target_10kbp)
 {
-  if (btllib::endswith(opt::filepath, ".sam") ||
-      btllib::endswith(opt::filepath, ".bam")) {
-    load_sam(filepath, targed_seqs_index);
+  if (btllib::endswith(filepath, ".sam") ||
+      btllib::endswith(filepath, ".bam")) {
+    load_sam(filepath, target_seqs_index);
   } else {
     load_ntlink(filepath, target_seqs_index, mx_threshold_min);
     filter(mx_max_mapped_seqs_per_target_10kbp,
@@ -47,8 +50,7 @@ AllMappings::load_ntlink(const std::string& filepath,
         target_seq_id = std::move(token);
         break;
       case 2: {
-        if (target_seqs_index.seqs_coords.find(target_seq_id) ==
-            target_seqs_index.seqs_coords.end()) {
+        if (!target_seqs_index.seq_exists(target_seq_id)) {
           break;
         }
         auto it = all_mappings.find(target_seq_id);
@@ -100,8 +102,7 @@ AllMappings::load_sam(const std::string& filepath,
           target_seq_id = std::move(token);
           break;
         case 4: {
-          if (target_seqs_index.seqs_coords.find(target_seq_id) ==
-              target_seqs_index.seqs_coords.end()) {
+          if (!target_seqs_index.seq_exists(target_seq_id)) {
             break;
           }
           auto it = all_mappings.find(target_seq_id);
@@ -140,12 +141,10 @@ void
 AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
                     const unsigned mx_threshold_min,
                     const unsigned mx_threshold_max,
-                    SeqIndex& target_seqs_index)
+                    const SeqIndex& target_seqs_index)
 {
-  btllib::log_info(FN_NAME + ": Filtering contig mapped_seqs... "));
+  btllib::log_info(FN_NAME + ": Filtering contig mapped_seqs... ");
 
-  btllib::check_error(target_seqs_index.empty(),
-                      FN_NAME + ": target_seqs_index is empty.");
   btllib::check_error(max_mapped_seqs_per_target_10kbp <= 0,
                       FN_NAME +
                         ": max_mapped_seqs_per_target_10kbp is not positive.");
@@ -156,15 +155,14 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
   for (auto& target_mappings : all_mappings) {
     const auto& target_seq_id = target_mappings.first;
     const auto& mappings = target_mappings.second;
-    if (m.empty()) {
+    if (mappings.empty()) {
       continue;
     }
 
-    if (target_seqs_index.seqs_coords.find(target_seq_id) ==
-        target_seqs_index.end()) {
+    if (!target_seqs_index.seq_exists(target_seq_id)) {
       continue;
     }
-    const auto target_seq_len = target_seqs_index.at(target_seq_id).seq_len;
+    const auto target_seq_len = target_seqs_index.get_seq_len(target_seq_id);
     const int max_mapped_seqs = std::ceil(
       double(target_seq_len) * max_mapped_seqs_per_target_10kbp / 10'000.0);
     btllib::check_error(max_mapped_seqs <= 0,
@@ -229,4 +227,13 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
     target_mappings.second = new_mappings;
   }
   btllib::log_info(FN_NAME + ": Done!");
+}
+
+const Mappings& AllMappings::get_mappings(const std::string& id) const {
+  const auto it = all_mappings.find(id);
+  if (it == all_mappings.end()) {
+    return empty_mappings;
+  } else {
+    return it->second;
+  }
 }

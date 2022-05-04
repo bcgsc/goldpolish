@@ -1,6 +1,8 @@
 #include "seqindex.hpp"
+#include "utils.hpp"
 
 #include "btllib/status.hpp"
+#include "btllib/util.hpp"
 
 #include <cstdlib>
 #include <fstream>
@@ -18,12 +20,12 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
 
   std::string line;
   std::string id;
-  long i = 0, byte = 0, id_startbyte = 0, id_endbyte = 0;
+  long i = 0, byte = 0/*, id_startbyte = 0*/, id_endbyte = 0;
   while (std::getline(seqsfile, line)) {
     const auto endbyte = byte + line.size();
     if (fastq) {
       if (i % 4 == 0) {
-        id_startbyte = byte + 1;
+        /*id_startbyte = byte + 1;*/
         id_endbyte = endbyte;
         id = btllib::split(line, " ")[0].substr(1);
       } else if (i % 4 == 1) {
@@ -35,7 +37,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
       }
     } else {
       if (i % 2 == 0) {
-        id_startbyte = byte + 1;
+        /*id_startbyte = byte + 1;*/
         id_endbyte = endbyte;
         id = btllib::split(line, " ")[0].substr(1);
       } else {
@@ -53,11 +55,11 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
   btllib::log_info(FN_NAME + ": Done.");
 }
 
-SeqIndex::save(const std::string& filepath)
+void SeqIndex::save(const std::string& filepath)
 {
   btllib::log_info(FN_NAME + ": Saving index to " + filepath + "... ");
 
-  std::ofstream indexfile(index_filepath);
+  std::ofstream indexfile(filepath);
   for (const auto& seq_coords : seqs_coords) {
     const auto id = seq_coords.first;
     const auto seq_start = seq_coords.second.seq_start;
@@ -101,4 +103,12 @@ SeqIndex::SeqIndex(const std::string& index_filepath,
     i++;
   }
   btllib::log_info(FN_NAME + ": Done!");
+}
+
+size_t SeqIndex::get_seq_len(const std::string& id) const {
+  return seqs_coords.at(id).seq_len;
+}
+
+bool SeqIndex::seq_exists(const std::string& id) const {
+  return seqs_coords.find(id) != seqs_coords.end();
 }

@@ -1,7 +1,7 @@
 scripts = [
     'goldrush_edit_utils.py',
     'goldrush-edit',
-    'goldrush-edit-cleanup',
+    'goldrush-edit-autoclean',
     'goldrush-edit-make',
     'goldrush-edit-mask',
     'goldrush-edit-ntedit',

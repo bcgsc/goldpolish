@@ -32,13 +32,22 @@ public:
   AllMappings(const AllMappings&) = delete;
   AllMappings& operator=(const AllMappings&) = delete;
 
-  const Mappings& get_mappings(const std::string& id) const { return all_mappings[id]; }
+  const Mappings& get_mappings(const std::string& id) const;
 
 private:
-  void load_ntlink();
-  void load_sam();
+  void load_ntlink(const std::string& filepath,
+                         const SeqIndex& target_seqs_index,
+                         unsigned mx_threshold_min);
+  void load_sam(const std::string& filepath,
+                      const SeqIndex& target_seqs_index);
+
+  void filter(double max_mapped_seqs_per_target_10kbp,
+                    unsigned mx_threshold_min,
+                    unsigned mx_threshold_max,
+                    const SeqIndex& target_seqs_index);
 
   std::unordered_map<std::string, Mappings> all_mappings;
+  static const Mappings empty_mappings;
 };
 
 #endif

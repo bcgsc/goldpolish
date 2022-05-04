@@ -56,9 +56,17 @@ void bind_to_parent() {
 }
 
 void make_pipe(const std::string& pipepath) {
+  const auto ret = mkfifo(pipepath.c_str(), FIFO_FLAGS);
   btllib::check_error(
-      mkfifo(pipepath.c_str(), FIFO_FLAGS) != 0,
-      FN_NAME + ": mkfifo failed.");
+      ret != 0,
+      FN_NAME + ": mkfifo failed: " + btllib::get_strerror());
+}
+
+std::string read_pipe(const std::string& pipepath) {
+  std::string str;
+  std::ifstream input(pipepath);
+  input >> str;
+  return str;
 }
 
 void confirm_pipe(const std::string& pipepath) {
