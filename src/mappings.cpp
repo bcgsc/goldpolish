@@ -10,13 +10,13 @@
 #include <fstream>
 #include <string>
 
-const Mappings AllMappings::empty_mappings;
+const Mappings AllMappings::EMPTY_MAPPINGS;
 
 AllMappings::AllMappings(const std::string& filepath,
-            const SeqIndex& target_seqs_index,
-            unsigned mx_threshold_min,
-            unsigned mx_threshold_max,
-            double mx_max_mapped_seqs_per_target_10kbp)
+                         const SeqIndex& target_seqs_index,
+                         unsigned mx_threshold_min,
+                         unsigned mx_threshold_max,
+                         double mx_max_mapped_seqs_per_target_10kbp)
 {
   if (btllib::endswith(filepath, ".sam") ||
       btllib::endswith(filepath, ".bam")) {
@@ -41,7 +41,7 @@ AllMappings::load_ntlink(const std::string& filepath,
   std::ifstream ifs(filepath);
   std::string token, mapped_seq_id, target_seq_id;
   unsigned long i = 0;
-  while (ifs >> token) {
+  while (bool(ifs >> token)) {
     switch (i % 3) {
       case 0:
         mapped_seq_id = std::move(token);
@@ -61,13 +61,13 @@ AllMappings::load_ntlink(const std::string& filepath,
         }
         const auto minimizers = std::stoul(token);
         if (minimizers >= mx_threshold_min) {
-          it->second.push_back(Mapping(mapped_seq_id, minimizers));
+          it->second.emplace_back(mapped_seq_id, minimizers);
         }
         break;
       }
       default: {
         btllib::log_error(FN_NAME + ": Invalid switch branch.");
-        std::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE); // NOLINT(concurrency-mt-unsafe)
       }
     }
     i++;
@@ -82,18 +82,18 @@ AllMappings::load_sam(const std::string& filepath,
   btllib::log_info(FN_NAME + ": Loading SAM mappings from " + filepath +
                    "... ");
 
-  size_t n = 2048;
+  size_t n = 2048; // NOLINT
   char* line = new char[n];
   btllib::DataSource data_source(filepath);
 
   std::string token, mapped_seq_id, target_seq_id;
   unsigned long i = 0;
-  while (getline(&line, &n, data_source)) {
+  while (getline(&line, &n, data_source) > 0) {
     if (n > 0 && line[0] == '@') {
       continue;
     }
     std::stringstream ss(line);
-    while (ss >> token) {
+    while (bool(ss >> token)) {
       switch (i % 3) {
         case 0:
           mapped_seq_id = std::move(token);
@@ -111,12 +111,12 @@ AllMappings::load_sam(const std::string& filepath,
               all_mappings.emplace(target_seq_id, Mappings());
             it = emplacement.first;
           }
-          it->second.push_back(Mapping(mapped_seq_id, 0));
+          it->second.emplace_back(mapped_seq_id, 0);
           break;
         }
         default: {
           btllib::log_error(FN_NAME + ": Invalid switch branch.");
-          std::exit(EXIT_FAILURE);
+          std::exit(EXIT_FAILURE); // NOLINT(concurrency-mt-unsafe)
         }
       }
       i++;
@@ -168,12 +168,12 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
     btllib::check_error(max_mapped_seqs <= 0,
                         FN_NAME + ": max_mapped_seqs <= 0.");
 
-    int updated_mx_threshold_min = mx_threshold_min;
-    int updated_mx_threshold_min_mapped_seqs = mappings.size();
+    int updated_mx_threshold_min = int(mx_threshold_min);
+    int updated_mx_threshold_min_mapped_seqs = int(mappings.size());
 
-    int updated_mx_threshold_max = mx_threshold_max;
+    int updated_mx_threshold_max = int(mx_threshold_max);
     int updated_mx_threshold_max_mapped_seqs =
-      mapped_seqs_for_threshold(mappings, updated_mx_threshold_max);
+      int(mapped_seqs_for_threshold(mappings, updated_mx_threshold_max));
 
     int mx_threshold = -1;
     if (updated_mx_threshold_min_mapped_seqs <= max_mapped_seqs) {
@@ -185,7 +185,7 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
         const int mx_threshold_mid =
           (updated_mx_threshold_max + updated_mx_threshold_min) / 2;
         const int mx_threshold_mid_mapped_seqs =
-          mapped_seqs_for_threshold(mappings, mx_threshold_mid);
+          int(mapped_seqs_for_threshold(mappings, mx_threshold_mid));
         if (mx_threshold_mid_mapped_seqs > max_mapped_seqs) {
           updated_mx_threshold_min = mx_threshold_mid;
           updated_mx_threshold_min_mapped_seqs = mx_threshold_mid_mapped_seqs;
@@ -229,11 +229,12 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
   btllib::log_info(FN_NAME + ": Done!");
 }
 
-const Mappings& AllMappings::get_mappings(const std::string& id) const {
+const Mappings&
+AllMappings::get_mappings(const std::string& id) const
+{
   const auto it = all_mappings.find(id);
   if (it == all_mappings.end()) {
-    return empty_mappings;
-  } else {
-    return it->second;
+    return EMPTY_MAPPINGS;
   }
+  return it->second;
 }

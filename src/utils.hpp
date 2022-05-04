@@ -19,11 +19,14 @@ wait_till_parent_ends();
 void
 bind_to_parent();
 
-void make_pipe(const std::string& pipepath);
+void
+make_pipe(const std::string& pipepath);
 
-std::string read_pipe(const std::string& pipepath);
+std::string
+read_pipe(const std::string& pipepath);
 
-void confirm_pipe(const std::string& pipepath);
+void
+confirm_pipe(const std::string& pipepath);
 
 void
 fill_bfs(const char* seq,

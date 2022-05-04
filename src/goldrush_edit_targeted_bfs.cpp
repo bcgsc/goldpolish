@@ -19,8 +19,12 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -38,20 +42,6 @@ static const std::string SEPARATOR = "-";
 static const std::string BF_EXTENSION = ".bf";
 static const std::string END_SYMBOL = "x";
 
-namespace opt {
-std::string target_seqs_filepath;
-std::string target_seqs_index_filepath;
-std::string mappings_filepath;
-std::string mapped_seqs_filepath;
-std::string mapped_seqs_index_filepath;
-size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL;
-size_t bf_bytes = 512ULL * 1024ULL;
-unsigned kmer_threshold = 5;
-std::vector<unsigned> k_values = { 32, 28, 24, 20 };
-unsigned hash_num = 4;
-unsigned threads = 7;
-}
-
 void
 serve_batch(const SeqIndex& target_seqs_index,
             const SeqIndex& mapped_seqs_index,
@@ -62,11 +52,10 @@ serve_batch(const SeqIndex& target_seqs_index,
             const std::string& batch_name,
             const std::string& target_ids_input_pipe,
             const std::string& bfs_ready_pipe,
-            const std::vector<std::string>& bf_names,
+            const std::vector<std::string>& bf_names, // NOLINT
             const unsigned hash_num,
-            const std::vector<unsigned>& k_values,
-            const double subsample_max_mapped_seqs_per_target_10kbp
-            )
+            const std::vector<unsigned>& k_values, // NOLINT
+            const double subsample_max_mapped_seqs_per_target_10kbp)
 {
   // Initialize Bloom filters
   std::vector<std::unique_ptr<btllib::KmerCountingBloomFilter8>> cbfs;
@@ -81,12 +70,13 @@ serve_batch(const SeqIndex& target_seqs_index,
   // Set Bloom filter paths
   std::vector<std::string> bf_full_names;
   for (const auto& bf_name : bf_names) {
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
     bf_full_names.push_back(batch_name + SEPARATOR + bf_name);
   }
 
   std::string target_seq_id;
   std::ifstream inputstream(target_ids_input_pipe);
-  while (inputstream >> target_seq_id && target_seq_id != END_SYMBOL) {
+  while (bool(inputstream >> target_seq_id) && target_seq_id != END_SYMBOL) {
     const auto target_seq_len = target_seqs_index.get_seq_len(target_seq_id);
 
     const auto& mappings = all_mappings.get_mappings(target_seq_id);
@@ -94,17 +84,19 @@ serve_batch(const SeqIndex& target_seqs_index,
       continue;
     }
     const auto mappings_num = mappings.size();
-    const auto mappings_num_adjusted = std::min(mappings_num,
-               decltype(mappings_num)(
-                 (double(target_seq_len) * subsample_max_mapped_seqs_per_target_10kbp) /
-                 10'000.0));
+    const auto mappings_num_adjusted = std::min(
+      mappings_num,
+      decltype(mappings_num)(
+        (double(target_seq_len) * subsample_max_mapped_seqs_per_target_10kbp) /
+        10'000.0));
 
     const auto random_indices =
       get_random_indices(mappings_num, mappings_num_adjusted);
 
+    // NOLINTNEXTLINE(google-readability-braces-around-statements,hicpp-braces-around-statements,readability-braces-around-statements)
     for (const auto mapped_id_idx : random_indices)
-#pragma omp task firstprivate(mapped_id_idx)                                     \
-  shared(bfs, cbfs, mappings, mapped_seqs_index, k_values)
+#pragma omp task firstprivate(mapped_id_idx)                                   \
+  shared(bfs, cbfs, mappings, mapped_seqs_index, k_values) default(none)
     {
       const auto mapped_id = mappings[mapped_id_idx].seq_id;
       const auto [seq, seq_len] = mapped_seqs_index.get_seq<1>(mapped_id);
@@ -136,8 +128,8 @@ process_batch_name(const SeqIndex& target_seqs_index,
                    const std::string& target_ids_input_pipe,
                    const std::string& bfs_ready_pipe,
                    const unsigned hash_num,
-                   const std::vector<unsigned>& k_values,
-                   const std::vector<std::string>& bf_names,
+                   const std::vector<unsigned>& k_values,    // NOLINT
+                   const std::vector<std::string>& bf_names, // NOLINT
                    const double subsample_max_mapped_seqs_per_target_10kbp)
 {
   const auto batch_name = read_pipe(batch_name_input_pipe);
@@ -156,8 +148,11 @@ process_batch_name(const SeqIndex& target_seqs_index,
 
 #pragma omp task firstprivate(                                                 \
   batch_name, batch_target_ids_input_pipe, batch_target_ids_input_ready_pipe)  \
-  shared(                                                                      \
-    target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
+  shared(target_seqs_index,                                                    \
+         mapped_seqs_index,                                                    \
+         all_mappings,                                                         \
+         bf_names,                                                             \
+         k_values) default(none)
   serve_batch(target_seqs_index,
               mapped_seqs_index,
               all_mappings,
@@ -187,7 +182,7 @@ serve(const SeqIndex& target_seqs_index,
       const std::string& target_ids_input_pipe,
       const std::string& bfs_ready_pipe,
       const unsigned hash_num,
-      const std::vector<unsigned>& k_values,
+      const std::vector<unsigned>& k_values, // NOLINT
       const double subsample_max_mapped_seqs_per_target_10kbp)
 {
   btllib::check_error(kmer_threshold == 0,
@@ -203,7 +198,15 @@ serve(const SeqIndex& target_seqs_index,
 
   btllib::log_info(FN_NAME + ": Accepting batch names at " +
                    batch_name_input_pipe);
-#pragma omp parallel
+#pragma omp parallel shared(target_seqs_index,                                 \
+                            mapped_seqs_index,                                 \
+                            all_mappings,                                      \
+                            batch_name_input_pipe,                             \
+                            batch_target_ids_input_ready_pipe,                 \
+                            target_ids_input_pipe,                             \
+                            bfs_ready_pipe,                                    \
+                            k_values,                                          \
+                            bf_names) default(none)
 #pragma omp single
   while (process_batch_name(target_seqs_index,
                             mapped_seqs_index,
@@ -230,27 +233,32 @@ serve(const SeqIndex& target_seqs_index,
 int
 main(int argc, char** argv)
 {
+  // NOLINTNEXTLINE(readability-magic-numbers,cppcoreguidelines-avoid-magic-numbers)
   btllib::check_error(argc != 7, "Wrong args.");
 
   bind_to_parent();
 
   unsigned arg = 1;
-  opt::target_seqs_filepath = argv[arg++];
-  opt::target_seqs_index_filepath = argv[arg++];
-  opt::mappings_filepath = argv[arg++];
-  opt::mapped_seqs_filepath = argv[arg++];
-  opt::mapped_seqs_index_filepath = argv[arg++];
-  opt::kmer_threshold = std::stoi(argv[arg++]);
+  auto* const target_seqs_filepath = argv[arg++];
+  auto* const target_seqs_index_filepath = argv[arg++];
+  auto* const mappings_filepath = argv[arg++];
+  auto* const mapped_seqs_filepath = argv[arg++];
+  auto* const mapped_seqs_index_filepath = argv[arg++];
+  const auto kmer_threshold = std::stoi(argv[arg++]);
+
+  size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL;        // NOLINT
+  size_t bf_bytes = 512ULL * 1024ULL;                  // NOLINT
+  std::vector<unsigned> k_values = { 32, 28, 24, 20 }; // NOLINT
+  unsigned hash_num = 4;                               // NOLINT
+  unsigned threads = 7;                                // NOLINT
 
   omp_set_nested(1);
-  omp_set_num_threads(opt::threads);
+  omp_set_num_threads(int(threads));
 
-  SeqIndex target_seqs_index(opt::target_seqs_index_filepath,
-                             opt::target_seqs_filepath);
-  SeqIndex mapped_seqs_index(opt::mapped_seqs_index_filepath,
-                             opt::mapped_seqs_filepath);
+  SeqIndex target_seqs_index(target_seqs_index_filepath, target_seqs_filepath);
+  SeqIndex mapped_seqs_index(mapped_seqs_index_filepath, mapped_seqs_filepath);
 
-  AllMappings all_mappings(opt::mappings_filepath,
+  AllMappings all_mappings(mappings_filepath,
                            target_seqs_index,
                            MX_THRESHOLD_MIN,
                            MX_THRESHOLD_MAX,
@@ -259,15 +267,15 @@ main(int argc, char** argv)
   serve(target_seqs_index,
         mapped_seqs_index,
         all_mappings,
-        opt::cbf_bytes,
-        opt::bf_bytes,
-        opt::kmer_threshold,
+        cbf_bytes,
+        bf_bytes,
+        kmer_threshold,
         BATCH_NAME_INPUT_PIPE,
         BATCH_TARGET_IDS_INPUT_READY_PIPE,
         TARGET_IDS_INPUT_PIPE,
         BFS_READY_PIPE,
-        opt::hash_num,
-        opt::k_values,
+        hash_num,
+        k_values,
         SUBSAMPLE_MAX_MAPPED_SEQS_PER_TARGET_10KBP);
 
   return 0;

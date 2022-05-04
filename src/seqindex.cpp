@@ -16,13 +16,13 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
 
   std::ifstream seqsfile(seqs_filepath);
 
-  bool fastq = seqsfile.peek() == '@' ? true : false;
+  const auto fastq = (seqsfile.peek() == '@');
 
   std::string line;
   std::string id;
-  long i = 0, byte = 0/*, id_startbyte = 0*/, id_endbyte = 0;
-  while (std::getline(seqsfile, line)) {
-    const auto endbyte = byte + line.size();
+  long i = 0, byte = 0 /*, id_startbyte = 0*/, id_endbyte = 0;
+  while (bool(std::getline(seqsfile, line))) {
+    const long endbyte = byte + long(line.size());
     if (fastq) {
       if (i % 4 == 0) {
         /*id_startbyte = byte + 1;*/
@@ -55,7 +55,8 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
   btllib::log_info(FN_NAME + ": Done.");
 }
 
-void SeqIndex::save(const std::string& filepath)
+void
+SeqIndex::save(const std::string& filepath)
 {
   btllib::log_info(FN_NAME + ": Saving index to " + filepath + "... ");
 
@@ -70,9 +71,8 @@ void SeqIndex::save(const std::string& filepath)
   btllib::log_info(FN_NAME + ": Done.");
 }
 
-SeqIndex::SeqIndex(const std::string& index_filepath,
-                   const std::string& seqs_filepath)
-  : seqs_filepath(seqs_filepath)
+SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
+  : seqs_filepath(std::move(seqs_filepath))
 {
   btllib::log_info(FN_NAME + ": Loading index from " + index_filepath + "... ");
 
@@ -80,7 +80,7 @@ SeqIndex::SeqIndex(const std::string& index_filepath,
   std::string token, id;
   unsigned long seq_start = 0, seq_len = 0;
   unsigned long i = 0;
-  while (ifs >> token) {
+  while (bool(ifs >> token)) {
     switch (i % 4) {
       case 0:
         id = std::move(token);
@@ -91,13 +91,13 @@ SeqIndex::SeqIndex(const std::string& index_filepath,
       case 3: {
         seq_len = std::stoul(token);
         seqs_coords.emplace(std::piecewise_construct,
-                                  std::make_tuple(id),
-                                  std::make_tuple(seq_start, seq_len));
+                            std::make_tuple(id),
+                            std::make_tuple(seq_start, seq_len));
         break;
       }
       default: {
         btllib::log_error(FN_NAME + ": Invalid switch branch.");
-        std::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE); // NOLINT(concurrency-mt-unsafe)
       }
     }
     i++;
@@ -105,10 +105,14 @@ SeqIndex::SeqIndex(const std::string& index_filepath,
   btllib::log_info(FN_NAME + ": Done!");
 }
 
-size_t SeqIndex::get_seq_len(const std::string& id) const {
+size_t
+SeqIndex::get_seq_len(const std::string& id) const
+{
   return seqs_coords.at(id).seq_len;
 }
 
-bool SeqIndex::seq_exists(const std::string& id) const {
+bool
+SeqIndex::seq_exists(const std::string& id) const
+{
   return seqs_coords.find(id) != seqs_coords.end();
 }

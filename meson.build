@@ -17,6 +17,18 @@ if compiler_id == 'clang' and compiler_version.version_compare('<10.0.0')
   error('Clang ' + compiler_version + ' is unsupported.')
 endif
 
+global_args = []
+global_link_args = [ '-ldl' ]
+
+message(compiler_id)
+
+if compiler_id == 'clang'
+  global_link_args += [ '-lstdc++', '-lm' ]
+endif
+
+add_global_arguments(global_args, language : 'cpp')
+add_global_link_arguments(global_link_args, language : 'cpp')
+
 # Build dependencies and subprojects
 # ===========================================================
 

@@ -5,10 +5,10 @@
 
 #include "btllib/status.hpp"
 
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <fstream>
 
 struct SeqCoordinates
 {
@@ -25,7 +25,7 @@ class SeqIndex
 
 public:
   SeqIndex(const std::string& seqs_filepath);
-  SeqIndex(const std::string& index_filepath, const std::string& seqs_filepath);
+  SeqIndex(const std::string& index_filepath, std::string seqs_filepath);
 
   SeqIndex(const SeqIndex&) = delete;
   SeqIndex& operator=(const SeqIndex&) = delete;
@@ -48,10 +48,12 @@ template<int i>
 std::tuple<const char*, size_t>
 SeqIndex::get_seq(const std::string& id) const
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   thread_local static std::ifstream* seqs_file;
   thread_local static bool seqs_file_initialized = false;
 
   static const size_t max_seqlen = 1024ULL * 1024ULL;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   thread_local static char* seq;
   thread_local static bool seq_initialized = false;
 
@@ -69,11 +71,13 @@ SeqIndex::get_seq(const std::string& id) const
   const auto seq_len = coords.seq_len;
   btllib::check_error(seq_len >= max_seqlen,
                       FN_NAME + ": Seq size over max limit.");
-  seqs_file->seekg(coords.seq_start);
-  seqs_file->read(seq, seq_len);
+  seqs_file->seekg(std::ifstream::pos_type(
+    coords
+      .seq_start)); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+  seqs_file->read(seq, std::streamsize(seq_len));
   seq[seq_len] = '\0';
 
-  return { seq, seq_len };
+  return decltype(SeqIndex::get_seq<i>(id)){ seq, seq_len };
 }
 
 #endif
