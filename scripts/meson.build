@@ -6,6 +6,7 @@ scripts = [
     'goldrush-edit-mask',
     'goldrush-edit-ntedit',
     'goldrush-edit-polish-batch',
+    'goldrush-edit-reaper',
     'goldrush-edit-to-upper'
 ]
 

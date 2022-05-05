@@ -1,14 +1,14 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include "fn_name.hpp"
+
 #include "btllib/bloom_filter.hpp"
 #include "btllib/counting_bloom_filter.hpp"
 
 #include <memory>
 #include <string>
 #include <vector>
-
-#define FN_NAME (std::string(__FUNCTION__))
 
 std::vector<size_t>
 get_random_indices(size_t total_size, size_t count);

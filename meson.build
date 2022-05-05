@@ -20,8 +20,6 @@ endif
 global_args = []
 global_link_args = [ '-ldl' ]
 
-message(compiler_id)
-
 if compiler_id == 'clang'
   global_link_args += [ '-lstdc++', '-lm' ]
 endif

@@ -2,7 +2,7 @@
 
 # Input files
 seqs_to_polish=None
-seqs_to_polish_notdir=$(notdir $(seqs))
+seqs_to_polish_notdir=$(notdir $(seqs_to_polish))
 polishing_seqs=None
 
 # Common parameters
@@ -42,8 +42,6 @@ endif
 .PHONY: clean
 .DELETE_ON_ERROR:
 .SECONDARY:
-
-all: $(seqs_to_polish_notdir).goldrush-edited.fa
 
 %.upper.fa: %.fa
 	$(log_time) goldrush-edit-to-upper $< $@

@@ -7,8 +7,9 @@ import subprocess as sp
 
 import btllib
 
-from .polish_utils import bind_to_parent
+from goldrush_edit_utils import bind_to_parent
 
+GOLDRUSH_EDIT_MAKE = 'goldrush-edit-make'
 
 def get_cli_args():
     parser = argparse.ArgumentParser(
@@ -67,7 +68,7 @@ def run_polishing(seqs_to_polish, bfs, k_values, threads):
     sealer_protocol_process = sp.run(
         [
             f""" \
-    ntedit-sealer \
+    {GOLDRUSH_EDIT_MAKE} \
     seqs_to_polish={seqs_to_polish} \
     bfs='{bfs}' \
     K='{k_values}' \

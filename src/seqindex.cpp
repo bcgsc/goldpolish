@@ -81,14 +81,14 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
   unsigned long seq_start = 0, seq_len = 0;
   unsigned long i = 0;
   while (bool(ifs >> token)) {
-    switch (i % 4) {
+    switch (i % 3) {
       case 0:
         id = std::move(token);
         break;
       case 1:
         seq_start = std::stoul(token);
         break;
-      case 3: {
+      case 2: {
         seq_len = std::stoul(token);
         seqs_coords.emplace(std::piecewise_construct,
                             std::make_tuple(id),

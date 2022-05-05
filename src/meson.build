@@ -1,4 +1,4 @@
-common = [ 'utils.cpp', 'utils.hpp', 'seqindex.cpp', 'seqindex.hpp', 'mappings.cpp', 'mappings.hpp' ]
+common = [ 'utils.cpp', 'utils.hpp', 'seqindex.cpp', 'seqindex.hpp', 'mappings.cpp', 'mappings.hpp', 'fn_name.hpp' ]
 
 build_index_src = [ 'goldrush_edit_index.cpp' ] + common
 build_targeted_bfs_src = [ 'goldrush_edit_targeted_bfs.cpp' ] + common

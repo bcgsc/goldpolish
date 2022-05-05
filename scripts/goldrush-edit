@@ -20,13 +20,19 @@ import time
 
 import btllib
 
-from .goldrush_edit_utils import get_random_name, watch_process
+from goldrush_edit_utils import get_random_name, watch_process
 
 SEQ_IDS_FILENAME = "seq_ids"
 BF_NAME_TEMPLATE = "targeted_k{}.bf"
 BFS_DIRNAME = "targeted_bfs"
-BFS_BATCH_INPUTPIPE = "targeted_batch"
-BFS_BATCH_CONFIRMPIPE = "targeted_confirm"
+BATCH_NAME_INPUT_PIPE = "batch_name_input"
+BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
+TARGET_IDS_INPUT_PIPE = "target_ids_input"
+BFS_READY_PIPE = "bfs_ready"
+SEPARATOR = "-"
+BATCH_DONE_PIPE = "polishing_done"
+GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
+GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 
 def get_cli_args():
     parser = argparse.ArgumentParser()
@@ -40,11 +46,11 @@ def get_cli_args():
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
-    args.to_polish = abspath(args.to_polish)
-    args.reads = abspath(args.reads)
-    args.output = abspath(args.output)
+    args.seqs_to_polish = abspath(args.seqs_to_polish)
+    args.polishing_seqs = abspath(args.polishing_seqs)
+    args.output_seqs = abspath(args.output_seqs)
     if len(args.k) == 0:
-        args.k = [32, 28, 24, 20]
+        args.k = [ 32, 28, 24, 20 ]
 
     return args
 
@@ -59,12 +65,12 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
     polishing_seqs_index = f"{basename(polishing_seqs_path)}.index"
     seqs_to_polish_index = f"{basename(seqs_to_polish_path)}.index"
     mappings = f"{basename(seqs_to_polish_path)}.mapping.tsv"
-    k_values = " ".join(k_values)
+    k_values = " ".join(str(k) for k in k_values)
 
     p = sp.run(
         [
             f""" \
-    goldrush-edit-make \
+    {GOLDRUSH_EDIT_MAKE} \
     polishing_seqs={polishing_seqs_path} \
     seqs_to_polish={seqs_to_polish_path} \
     K='{k_values}' \
@@ -91,11 +97,12 @@ def run_bf_builder(
     polishing_seqs,
     polishing_seqs_index,
     kmer_threshold,
-    batch_pipepath,
+    batch_name_input_pipe,
+    batch_target_ids_input_ready_pipe
 ):
     process = sp.Popen(
         [
-            "build_targeted_bfs",
+            GOLDRUSH_EDIT_TARGETED_BFS,
             seqs_to_polish,
             seqs_to_polish_index,
             mappings,
@@ -107,7 +114,7 @@ def run_bf_builder(
     )
     watch_process(process)
 
-    while not exists(batch_pipepath):
+    while not exists(batch_name_input_pipe) or not exists(batch_target_ids_input_ready_pipe):
         time.sleep(2)
     btllib.log_info("build_targeted_bfs is ready!")
 
@@ -150,7 +157,7 @@ def polish_batch(
 
     os.mkfifo(join(tmp_dir, batch_confirmpipe))
 
-    with open(join(tmp_dir, RECORD_IDS_FILENAME), "w") as f:
+    with open(join(tmp_dir, SEQ_IDS_FILENAME), "w") as f:
         for id in record_ids:
             print(id, file=f)
 
@@ -162,24 +169,12 @@ def polish_batch(
     watch_process(process)
 
 
-def wait_on_batch(batch_confirm_pipepath):
-    with open(batch_confirm_pipepath) as f:
-        f.read()
-
-
-def write_batch_results(tmp_dir, to_polish, writer):
-    seqs_path = join(
-        tmp_dir, f"{splitext(to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa"
-    )
-    if getsize(seqs_path) > 0:
-        with btllib.SeqReader(seqs_path, btllib.SeqReaderFlag.LONG_MODE) as tmpreader:
-            for record in tmpreader:
-                writer.write(record.id, record.comment, record.seq)
-
+def start_reaper():
+    # watch process
+    pass
 
 def polish_seqs(
     reader,
-    writer,
     seqs_to_polish,
     polishing_seqs,
     k_values,
@@ -190,12 +185,15 @@ def polish_seqs(
 ):
     prefix = get_random_name()
 
+    autoclean(workspace, prefix)
+
+    # Build indexes and mappings
+    polishing_seqs_index, seqs_to_polish_index, mappings = build_indexes_and_mappings(
+        polishing_seqs, seqs_to_polish, k_values
+    )
+
     # Where to build the Bloom filters
     bfs_dir = make_tmp_dir(workspace, prefix, BFS_DIRNAME)
-
-    # Pipes for communicating with the process building the Bloom filters
-    batch_input_pipepath = join(bfs_dir, BFS_BATCH_INPUTPIPE)
-    batch_confirm_pipepath = join(bfs_dir, BFS_BATCH_CONFIRMPIPE)
 
     # Bloom filter names
     bfs = ""
@@ -203,36 +201,35 @@ def polish_seqs(
         bf_name = BF_NAME_TEMPLATE.format(k)
         bfs += join(bfs_dir, bf_name) + " "
 
-    # Temporary name for the contig(s) to polish
-    contig_tmppath = "contig.tmp.fa"
-
-    # The pipe to communicate with the processes of level two batching
-    batch2_confirmpipe = "confirmpipe"
-
-    batch2_paths = []
-    handle_sudden_exit(polishing_workspace, prefix)
-
-    polishing_seqs_index, seqs_to_polish_index, mappings = build_indexes_and_mappings(
-        reads, to_polish, K
-    )
+    # Pipes for communicating with the process building the Bloom filters
+    batch_name_input_pipe = join(bfs_dir, BATCH_NAME_INPUT_PIPE)
+    batch_target_ids_input_ready_pipe = join(bfs_dir, BATCH_TARGET_IDS_INPUT_READY_PIPE)
 
     build_targeted_bfs_process = run_bf_builder(
         bfs_dir,
-        to_polish,
-        join(cwd, to_polish_index),
-        join(cwd, to_polish_read_mapping),
-        reads,
-        join(cwd, reads_index),
+        seqs_to_polish,
+        seqs_to_polish_index,
+        mappings,
+        polishing_seqs,
+        polishing_seqs_index,
         kmer_threshold,
-        input_pipepath,
+        batch_name_input_pipe,
+        batch_target_ids_input_ready_pipe
     )
+
+    # Temporary name for the seq(s) to polish
+    batch_seqs = "batch.fa"
+    last_batch = 0
+    batches_done = 0
+
+    start_reaper()
 
     btllib.log_info("Polishing batches...")
     reader_done = False
     while not reader_done:
-        batch2_paths.clear()
+        batch_paths.clear()
 
-        for batch2_idx in range(batch2_size):
+        for batch_idx in range(batch_size):
             if reader_done:
                 break
 
@@ -261,11 +258,6 @@ def polish_seqs(
                 shutil.rmtree(tmp_dir, ignore_errors=True)
                 batch2_paths.pop()
 
-        for tmp_dir in batch2_paths:
-            wait_on_batch(join(tmp_dir, batch2_confirmpipe))
-            write_batch_results(tmp_dir, contig_tmppath, writer)
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-
     btllib.log_info("Done polishing batches, ending helper process...")
     with open(input_pipepath, "w") as f:
         print("x", file=f)
@@ -288,10 +280,9 @@ if __name__ == "__main__":
 
     with btllib.SeqReader(
         args.seqs_to_polish, btllib.SeqReaderFlag.LONG_MODE
-    ) as reader, btllib.SeqWriter(args.output) as writer:
+    ) as reader:
         polish_seqs(
             reader,
-            writer,
             args.seqs_to_polish,
             args.polishing_seqs,
             args.k,
