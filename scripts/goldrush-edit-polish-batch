@@ -44,7 +44,7 @@ def get_seq_ids(record_ids_filepath):
 def get_bfs_ready(
     bfs_dirpath, id_pipename, seq_ids, ready_pipename, bf_name_template, k_values
 ):
-    with open(join(bfs_dirpath, id_pipename)) as id_pipe:
+    with open(join(bfs_dirpath, id_pipename), 'w') as id_pipe:
         for id in seq_ids:
             id_pipe.write(id + "\n")
     with open(join(bfs_dirpath, ready_pipename)) as f:
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     bind_to_parent()
 
     seq_ids = get_seq_ids(args.seq_ids)
-    bfs = get_bfs_ready(args.bfs_dir)
+    bfs = get_bfs_ready(args.bfs_dir, args.bfs_ids_pipe, seq_ids, args.bfs_ready_pipe, args.bf_name_template, args.k)
 
     polishing_stdout, polishing_stderr = run_polishing(
         args.seqs_to_polish, bfs, args.k, args.threads

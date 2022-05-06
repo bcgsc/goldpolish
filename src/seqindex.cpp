@@ -15,6 +15,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
   btllib::log_info(FN_NAME + ": Building index for " + seqs_filepath + "... ");
 
   std::ifstream seqsfile(seqs_filepath);
+  btllib::check_stream(seqsfile, seqs_filepath);
 
   const auto fastq = (seqsfile.peek() == '@');
 
@@ -77,6 +78,7 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
   btllib::log_info(FN_NAME + ": Loading index from " + index_filepath + "... ");
 
   std::ifstream ifs(index_filepath);
+  btllib::check_stream(ifs, index_filepath);
   std::string token, id;
   unsigned long seq_start = 0, seq_len = 0;
   unsigned long i = 0;

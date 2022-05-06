@@ -2,12 +2,22 @@
 
 import argparse
 import time
+from os.path import (
+    join,
+    exists,
+    splitext,
+    getsize,
+)
+import shutil
 
 import btllib
 
 from goldrush_edit_utils import bind_to_parent
 
 RUSH_DELAY = 2  # Seconds
+BATCH_DONE_PIPE = "polishing_done"
+POLISHING_OVER_FILE = "gg"
+SEPARATOR = '-'
 
 def get_cli_args():
     parser = argparse.ArgumentParser(
@@ -24,25 +34,44 @@ def get_cli_args():
     )  
     return parser.parse_args()
 
-def wait_on_batch(batch_confirm_pipepath):
-    with open(batch_confirm_pipepath) as f:
+def write_batch_results(batch_dir, seqs_to_polish, writer):
+    polished_seqs = join(
+        batch_dir, f"{splitext(seqs_to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa"
+    )
+    assert getsize(polished_seqs) > 0
+
+    with btllib.SeqReader(polished_seqs, btllib.SeqReaderFlag.LONG_MODE) as reader:
+        for record in reader:
+            writer.write(record.id, record.comment, record.seq)
+
+def wait_on_batch(batch_done_pipe):
+    with open(batch_done_pipe) as f:
         f.read()
 
-def write_batch_results(tmp_dir, to_polish, writer):
-    seqs_path = join(
-        tmp_dir, f"{splitext(to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa"
-    )
-    if getsize(seqs_path) > 0:
-        with btllib.SeqReader(seqs_path, btllib.SeqReaderFlag.LONG_MODE) as tmpreader:
-            for record in tmpreader:
-                writer.write(record.id, record.comment, record.seq)
+def start_reapin(workspace, prefix, output_seqs):
+    with btllib.SeqWriter(output_seqs) as writer:
+        batch_num = 0
+        over = False
+        while not over:
+            batch_dir = join(workspace, f"{prefix}{SEPARATOR}{batch_num}")
+            batch_done_pipe = join(batch_dir, BATCH_DONE_PIPE)
+            polishing_over_file = join(batch_dir, POLISHING_OVER_FILE)
 
-shutil.rmtree(tmp_dir, ignore_errors=True)
+            while not exists(batch_done_pipe): time.sleep(RUSH_DELAY)
+            wait_on_batch(batch_done_pipe)
+
+            if exists(polishing_over_file):
+                over = True
+            else:
+                write_batch_results(batch_dir, output_seqs, writer)
+
+            shutil.rmtree(batch_dir, ignore_errors=True)
+
+            batch_num += 1
 
 if __name__ == "__main__":
     args = get_cli_args()
 
     bind_to_parent()
 
-    with btllib.SeqWriter(args.output_seqs) as writer:
-        start_reapin()
+    start_reapin(args.workspace_path, args.prefix, args.output_seqs)

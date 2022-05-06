@@ -39,6 +39,7 @@ AllMappings::load_ntlink(const std::string& filepath,
                    "... ");
 
   std::ifstream ifs(filepath);
+  btllib::check_stream(ifs, filepath);
   std::string token, mapped_seq_id, target_seq_id;
   unsigned long i = 0;
   while (bool(ifs >> token)) {
