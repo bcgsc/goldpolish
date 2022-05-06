@@ -9,7 +9,8 @@ import btllib
 
 from goldrush_edit_utils import bind_to_parent
 
-GOLDRUSH_EDIT_MAKE = 'goldrush-edit-make'
+GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
+
 
 def get_cli_args():
     parser = argparse.ArgumentParser(
@@ -21,7 +22,10 @@ def get_cli_args():
         "-k", action="append", default=[], help="List of k values to use for polishing."
     )
     parser.add_argument(
-        "-b", action="append", default=[], help="Bloom filter paths, corresponding to provided k values."
+        "-b",
+        action="append",
+        default=[],
+        help="Bloom filter paths, corresponding to provided k values.",
     )
     parser.add_argument("--seq-ids", default="seq_ids")
     parser.add_argument("--bfs-ids-pipe", default="targeted_input")
@@ -43,9 +47,8 @@ def get_seq_ids(record_ids_filepath):
         return [line.strip() for line in records_file]
 
 
-def get_bfs_ready(
-    bfs_dirpath, id_pipename, seq_ids, ready_pipename):
-    with open(join(bfs_dirpath, id_pipename), 'w') as id_pipe:
+def get_bfs_ready(bfs_dirpath, id_pipename, seq_ids, ready_pipename):
+    with open(join(bfs_dirpath, id_pipename), "w") as id_pipe:
         for id in seq_ids:
             id_pipe.write(id + "\n")
     with open(join(bfs_dirpath, ready_pipename)) as f:
@@ -60,7 +63,9 @@ def run_polishing(seqs_to_polish, bfs, k_values, threads):
     bfs = " ".join(bfs)
     k_values = " ".join(k_values)
 
-    print(f"{GOLDRUSH_EDIT_MAKE} seqs_to_polish={seqs_to_polish} bfs='{bfs}' K='{k_values}' t={threads} {polished_seqs}")
+    print(
+        f"{GOLDRUSH_EDIT_MAKE} seqs_to_polish={seqs_to_polish} bfs='{bfs}' K='{k_values}' t={threads} {polished_seqs}"
+    )
 
     try:
         sealer_protocol_process = sp.run(

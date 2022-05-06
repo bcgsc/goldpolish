@@ -75,5 +75,7 @@ def extend_gaps(reader, writer, k, soft_mask, hard_mask):
 if __name__ == "__main__":
     args = get_cli_args()
 
-    with btllib.SeqReader(args.seqspath, btllib.SeqReaderFlag.LONG_MODE) as reader, btllib.SeqWriter("-") as writer:
+    with btllib.SeqReader(
+        args.seqspath, btllib.SeqReaderFlag.LONG_MODE
+    ) as reader, btllib.SeqWriter("-") as writer:
         extend_gaps(reader, writer, args.k, args.s, args.n)

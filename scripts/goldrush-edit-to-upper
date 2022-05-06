@@ -17,6 +17,8 @@ def get_cli_args():
 if __name__ == "__main__":
     args = get_cli_args()
 
-    with btllib.SeqReader(args.seqs_path, btllib.SeqReaderFlag.LONG_MODE) as reader, btllib.SeqWriter(args.output_path) as writer:
+    with btllib.SeqReader(
+        args.seqs_path, btllib.SeqReaderFlag.LONG_MODE
+    ) as reader, btllib.SeqWriter(args.output_path) as writer:
         for record in reader:
             writer.write(record.id, record.comment, record.seq.upper(), record.qual)

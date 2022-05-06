@@ -17,26 +17,23 @@ from goldrush_edit_utils import bind_to_parent
 RUSH_DELAY = 2  # Seconds
 BATCH_DONE_PIPE = "polishing_done"
 POLISHING_OVER_FILE = "gg"
-SEPARATOR = '-'
+SEPARATOR = "-"
+
 
 def get_cli_args():
-    parser = argparse.ArgumentParser(
-        "Reap the finished batches."
-    )
+    parser = argparse.ArgumentParser("Reap the finished batches.")
     parser.add_argument(
         "workspace_path", help="The path to where all the polishing is taking place."
     )
-    parser.add_argument(
-        "prefix", help="Unique prefix of this polishing instance."
-    )
-    parser.add_argument(
-        "output_seqs", help="Filepath to write polished seqs to."
-    )  
+    parser.add_argument("prefix", help="Unique prefix of this polishing instance.")
+    parser.add_argument("output_seqs", help="Filepath to write polished seqs to.")
     return parser.parse_args()
+
 
 def write_batch_results(batch_dir, seqs_to_polish, writer):
     polished_seqs = join(
-        batch_dir, f"{splitext(seqs_to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa"
+        batch_dir,
+        f"{splitext(seqs_to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa",
     )
     assert getsize(polished_seqs) > 0
 
@@ -44,9 +41,11 @@ def write_batch_results(batch_dir, seqs_to_polish, writer):
         for record in reader:
             writer.write(record.id, record.comment, record.seq)
 
+
 def wait_on_batch(batch_done_pipe):
     with open(batch_done_pipe) as f:
         f.read()
+
 
 def start_reapin(workspace, prefix, output_seqs):
     with btllib.SeqWriter(output_seqs) as writer:
@@ -57,7 +56,8 @@ def start_reapin(workspace, prefix, output_seqs):
             batch_done_pipe = join(batch_dir, BATCH_DONE_PIPE)
             polishing_over_file = join(batch_dir, POLISHING_OVER_FILE)
 
-            while not exists(batch_done_pipe): time.sleep(RUSH_DELAY)
+            while not exists(batch_done_pipe):
+                time.sleep(RUSH_DELAY)
             wait_on_batch(batch_done_pipe)
 
             if exists(polishing_over_file):
@@ -68,6 +68,7 @@ def start_reapin(workspace, prefix, output_seqs):
             shutil.rmtree(batch_dir, ignore_errors=True)
 
             batch_num += 1
+
 
 if __name__ == "__main__":
     args = get_cli_args()
