@@ -1,4 +1,4 @@
-#!/urs/bin/env python3
+#!/usr/bin/env python3
 
 import argparse
 import time
@@ -26,17 +26,15 @@ def get_cli_args():
         "workspace_path", help="The path to where all the polishing is taking place."
     )
     parser.add_argument("prefix", help="Unique prefix of this polishing instance.")
+    parser.add_argument(
+        "batch_polished_seqs", help="Name of the file with batch polished sequences."
+    )
     parser.add_argument("output_seqs", help="Filepath to write polished seqs to.")
     return parser.parse_args()
 
 
-def write_batch_results(batch_dir, seqs_to_polish, writer):
-    polished_seqs = join(
-        batch_dir,
-        f"{splitext(seqs_to_polish)[0]}.ntedited.prepd.sealer_scaffold.upper.fa",
-    )
+def write_batch_results(polished_seqs, writer):
     assert getsize(polished_seqs) > 0
-
     with btllib.SeqReader(polished_seqs, btllib.SeqReaderFlag.LONG_MODE) as reader:
         for record in reader:
             writer.write(record.id, record.comment, record.seq)
@@ -47,7 +45,7 @@ def wait_on_batch(batch_done_pipe):
         f.read()
 
 
-def start_reapin(workspace, prefix, output_seqs):
+def start_reapin(workspace, prefix, batch_polished_seqs, output_seqs):
     with btllib.SeqWriter(output_seqs) as writer:
         batch_num = 0
         over = False
@@ -58,12 +56,14 @@ def start_reapin(workspace, prefix, output_seqs):
 
             while not exists(batch_done_pipe):
                 time.sleep(RUSH_DELAY)
+
             wait_on_batch(batch_done_pipe)
 
             if exists(polishing_over_file):
                 over = True
             else:
-                write_batch_results(batch_dir, output_seqs, writer)
+                polished_seqs = join(batch_dir, batch_polished_seqs)
+                write_batch_results(polished_seqs, writer)
 
             shutil.rmtree(batch_dir, ignore_errors=True)
 
@@ -75,4 +75,6 @@ if __name__ == "__main__":
 
     bind_to_parent()
 
-    start_reapin(args.workspace_path, args.prefix, args.output_seqs)
+    start_reapin(
+        args.workspace_path, args.prefix, args.batch_polished_seqs, args.output_seqs
+    )

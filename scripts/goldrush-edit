@@ -35,6 +35,8 @@ SEPARATOR = "-"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
+GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
+END_SYMBOL = "x"
 
 
 def get_cli_args():
@@ -137,7 +139,7 @@ def run_bf_builder(
 
 def end_bf_builder(batch_name_input_pipe):
     with open(batch_name_input_pipe, "w") as f:
-        print("x", file=f)
+        print(END_SYMBOL, file=f)
 
 
 def get_next_batch_of_contigs(reader, output_filepath, batch_size):
@@ -212,8 +214,10 @@ def polish_batch(
     watch_process(process)
 
 
-def start_reaper(workspace, prefix, output_seqs):
-    process = sp.Popen(["goldrush-edit-reaper", workspace, prefix, output_seqs])
+def start_reaper(workspace, prefix, batch_polished_seqs, output_seqs):
+    process = sp.Popen(
+        [GOLDRUSH_EDIT_REAPER, workspace, prefix, batch_polished_seqs, output_seqs]
+    )
     watch_process(process)
 
 
@@ -268,9 +272,10 @@ def polish_seqs(
 
     # Temporary name for the seq(s) to polish
     batch_seqs = "batch.fa"
+    batch_polished_seqs = "batch.ntedited.prepd.sealer_scaffold.upper.fa"
     batch_num = 0
 
-    # start_reaper(workspace, prefix, output_seqs)
+    start_reaper(workspace, prefix, batch_polished_seqs, output_seqs)
 
     btllib.log_info("Polishing batches...")
     reader_done = False
@@ -285,7 +290,7 @@ def polish_seqs(
             batch_done_pipe = join(batch_dir, BATCH_DONE_PIPE)
             os.mkfifo(batch_done_pipe)
 
-            if batch_num == 1:
+            if batch_num == 1000:
                 reader_done = True
                 seq_ids = []
 

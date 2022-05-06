@@ -147,7 +147,7 @@ process_batch_name(const SeqIndex& target_seqs_index,
   confirm_pipe(batch_target_ids_input_ready_pipe);
 
 #pragma omp task firstprivate(                                                 \
-  batch_name, batch_target_ids_input_pipe, batch_target_ids_input_ready_pipe)  \
+  batch_name, batch_target_ids_input_pipe, batch_bfs_ready_pipe)               \
   shared(                                                                      \
     target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
   serve_batch(target_seqs_index,
@@ -242,10 +242,10 @@ main(int argc, char** argv)
     k_values.push_back(std::stoi(argv[arg++]));
   }
 
-  size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL;        // NOLINT
-  size_t bf_bytes = 512ULL * 1024ULL;                  // NOLINT
-  unsigned hash_num = 4;                               // NOLINT
-  unsigned threads = 7;                                // NOLINT
+  size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL; // NOLINT
+  size_t bf_bytes = 512ULL * 1024ULL;           // NOLINT
+  unsigned hash_num = 4;                        // NOLINT
+  unsigned threads = 7;                         // NOLINT
 
   omp_set_nested(1);
   omp_set_num_threads(int(threads));

@@ -63,10 +63,6 @@ def run_polishing(seqs_to_polish, bfs, k_values, threads):
     bfs = " ".join(bfs)
     k_values = " ".join(k_values)
 
-    print(
-        f"{GOLDRUSH_EDIT_MAKE} seqs_to_polish={seqs_to_polish} bfs='{bfs}' K='{k_values}' t={threads} {polished_seqs}"
-    )
-
     try:
         sealer_protocol_process = sp.run(
             [
