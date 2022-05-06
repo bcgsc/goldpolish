@@ -46,9 +46,6 @@ endif
 %.upper.fa: %.fa
 	$(log_time) goldrush-edit-to-upper $< $@
 
-%.upper.fq: %.fq
-	$(log_time) goldrush-edit-to-upper $< $@
-
 %.index: %
 	$(log_time) goldrush-edit-index $< $@
 

@@ -23,15 +23,15 @@ import btllib
 from goldrush_edit_utils import get_random_name, watch_process
 
 SEQ_IDS_FILENAME = "seq_ids"
-BF_NAME_TEMPLATE = "targeted_k{}.bf"
+BF_NAME_TEMPLATE = "{}-k{}.bf"
 BFS_DIRNAME = "targeted_bfs"
 BATCH_NAME_INPUT_PIPE = "batch_name_input"
 BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
 TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
-SEPARATOR = "-"
 BATCH_DONE_PIPE = "polishing_done"
 POLISHING_OVER_FILE = "gg"
+SEPARATOR = "-"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 GOLDRUSH_EDIT_POLISH_BATCH = 'goldrush-edit-polish-batch'
@@ -173,23 +173,31 @@ def polish_batch(
     with open(batch_target_ids_input_ready_pipe) as f:
         f.read()
 
-    with open(join(batch_dir, SEQ_IDS_FILENAME), 'w') as f:
+    seq_ids_file = join(batch_dir, SEQ_IDS_FILENAME)
+    with open(seq_ids_file, 'w') as f:
         for id in seq_ids:
             print(id, file=f)
 
-    k_values = ' '.join(f'-k{k}' for k in k_values)
+    # Bloom filter names
+    bfs = []
+    for k in k_values:
+        bf_name = BF_NAME_TEMPLATE.format(batch_num, k)
+        bf_path = join(bfs_dir, bf_name)
+        bfs.append(f'-b{bf_path}')
+
+    k_values = [ f'-k{k}' for k in k_values ]
 
     process = sp.Popen(
         [ GOLDRUSH_EDIT_POLISH_BATCH,
         batch_seqs,
-        bfs_dir,
-        BF_NAME_TEMPLATE,
-        k_values,
-        '--seq-ids', f'{SEQ_IDS_FILENAME}',
+        bfs_dir ] +
+        k_values +
+        bfs +
+        [ '--seq-ids', f'{seq_ids_file}',
         '--bfs-ids-pipe', f'{target_ids_input_pipe}',
         '--bfs-ready-pipe', f'{bfs_ready_pipe}',
-        '--batch-done-pipe', f'{batch_done_pipe}' ]
-        + (["--verbose"] if verbose else []),
+        '--batch-done-pipe', f'{batch_done_pipe}' ] +
+        (["--verbose"] if verbose else []),
         cwd=batch_dir,
     )
     watch_process(process)
@@ -228,12 +236,6 @@ def polish_seqs(
 
     # Where to build the Bloom filters
     bfs_dir = make_tmp_dir(workspace, prefix, BFS_DIRNAME)
-
-    # Bloom filter names
-    bfs = ""
-    for k in k_values:
-        bf_name = BF_NAME_TEMPLATE.format(k)
-        bfs += join(bfs_dir, bf_name) + " "
 
     # Pipes for communicating with the process building the Bloom filters
     batch_name_input_pipe = join(bfs_dir, BATCH_NAME_INPUT_PIPE)

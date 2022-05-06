@@ -17,9 +17,11 @@ def get_cli_args():
     )
     parser.add_argument("seqs_to_polish")
     parser.add_argument("bfs_dir")
-    parser.add_argument("bf_name_template")
     parser.add_argument(
         "-k", action="append", default=[], help="List of k values to use for polishing."
+    )
+    parser.add_argument(
+        "-b", action="append", default=[], help="Bloom filter paths, corresponding to provided k values."
     )
     parser.add_argument("--seq-ids", default="seq_ids")
     parser.add_argument("--bfs-ids-pipe", default="targeted_input")
@@ -42,19 +44,12 @@ def get_seq_ids(record_ids_filepath):
 
 
 def get_bfs_ready(
-    bfs_dirpath, id_pipename, seq_ids, ready_pipename, bf_name_template, k_values
-):
+    bfs_dirpath, id_pipename, seq_ids, ready_pipename):
     with open(join(bfs_dirpath, id_pipename), 'w') as id_pipe:
         for id in seq_ids:
             id_pipe.write(id + "\n")
     with open(join(bfs_dirpath, ready_pipename)) as f:
         f.read()
-
-    bfs = []
-    for k in k_values:
-        bf = bf_name_template.format(k)
-        bfs.append(join(bfs_dirpath, bf))
-    return bfs
 
 
 def run_polishing(seqs_to_polish, bfs, k_values, threads):
@@ -65,22 +60,28 @@ def run_polishing(seqs_to_polish, bfs, k_values, threads):
     bfs = " ".join(bfs)
     k_values = " ".join(k_values)
 
-    sealer_protocol_process = sp.run(
-        [
-            f""" \
-    {GOLDRUSH_EDIT_MAKE} \
-    seqs_to_polish={seqs_to_polish} \
-    bfs='{bfs}' \
-    K='{k_values}' \
-    t={threads} \
-    {polished_seqs} \
-  """
-        ],
-        shell=True,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+    print(f"{GOLDRUSH_EDIT_MAKE} seqs_to_polish={seqs_to_polish} bfs='{bfs}' K='{k_values}' t={threads} {polished_seqs}")
+
+    try:
+        sealer_protocol_process = sp.run(
+            [
+                f""" \
+        {GOLDRUSH_EDIT_MAKE} \
+        seqs_to_polish={seqs_to_polish} \
+        bfs='{bfs}' \
+        K='{k_values}' \
+        t={threads} \
+        {polished_seqs} \
+    """
+            ],
+            shell=True,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+    except sp.CalledProcessError as e:
+        btllib.log_error(f"{e.stderr}")
+        raise e
 
     return sealer_protocol_process.stdout, sealer_protocol_process.stderr
 
@@ -122,13 +123,13 @@ if __name__ == "__main__":
     bind_to_parent()
 
     seq_ids = get_seq_ids(args.seq_ids)
-    bfs = get_bfs_ready(args.bfs_dir, args.bfs_ids_pipe, seq_ids, args.bfs_ready_pipe, args.bf_name_template, args.k)
+    get_bfs_ready(args.bfs_dir, args.bfs_ids_pipe, seq_ids, args.bfs_ready_pipe)
 
     polishing_stdout, polishing_stderr = run_polishing(
-        args.seqs_to_polish, bfs, args.k, args.threads
+        args.seqs_to_polish, args.b, args.k, args.threads
     )
 
-    cleanup_bfs(args.bfs_dir, bfs)
+    cleanup_bfs(args.bfs_dir, args.b)
 
     if args.verbose:
         print_info(polishing_stdout, polishing_stderr)
