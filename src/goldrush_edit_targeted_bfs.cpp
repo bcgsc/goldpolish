@@ -225,21 +225,25 @@ int
 main(int argc, char** argv)
 {
   // NOLINTNEXTLINE(readability-magic-numbers,cppcoreguidelines-avoid-magic-numbers)
-  btllib::check_error(argc != 7, "Wrong args.");
+  btllib::check_error(argc < 8, "Wrong args.");
 
   bind_to_parent();
 
-  unsigned arg = 1;
+  std::vector<unsigned> k_values;
+
+  int arg = 1;
   auto* const target_seqs_filepath = argv[arg++];
   auto* const target_seqs_index_filepath = argv[arg++];
   auto* const mappings_filepath = argv[arg++];
   auto* const mapped_seqs_filepath = argv[arg++];
   auto* const mapped_seqs_index_filepath = argv[arg++];
   const auto kmer_threshold = std::stoi(argv[arg++]);
+  while (arg < argc) {
+    k_values.push_back(std::stoi(argv[arg++]));
+  }
 
   size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL;        // NOLINT
   size_t bf_bytes = 512ULL * 1024ULL;                  // NOLINT
-  std::vector<unsigned> k_values = { 32, 28, 24, 20 }; // NOLINT
   unsigned hash_num = 4;                               // NOLINT
   unsigned threads = 7;                                // NOLINT
 
