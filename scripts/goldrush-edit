@@ -31,6 +31,7 @@ TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
 SEPARATOR = "-"
 BATCH_DONE_PIPE = "polishing_done"
+POLISHING_OVER_FILE = "gg"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 
@@ -97,9 +98,12 @@ def run_bf_builder(
     polishing_seqs,
     polishing_seqs_index,
     kmer_threshold,
+    k_values,
     batch_name_input_pipe,
     batch_target_ids_input_ready_pipe
 ):
+    k_values = [ str(k) for k in k_values ]
+
     process = sp.Popen(
         [
             GOLDRUSH_EDIT_TARGETED_BFS,
@@ -108,8 +112,8 @@ def run_bf_builder(
             mappings,
             polishing_seqs,
             polishing_seqs_index,
-            str(kmer_threshold),
-        ],
+            str(kmer_threshold)
+        ] + k_values,
         cwd=bfs_dir,
     )
     watch_process(process)
@@ -120,17 +124,22 @@ def run_bf_builder(
 
     return process
 
+def end_bf_builder(batch_name_input_pipe):
+    with open(batch_name_input_pipe, "w") as f:
+        print("x", file=f)
 
-def get_next_batch_of_contigs(reader, record_ids, output_filepath, batch_size):
-    with btllib.SeqWriter(output_filepath) as tmpwriter:
+
+def get_next_batch_of_contigs(reader, output_filepath, batch_size):
+    with btllib.SeqWriter(output_filepath) as writer:
+        seq_ids = []
         reader_done = True
         while record := reader.read():
-            tmpwriter.write(record.id, record.comment, record.seq)
-            record_ids.append(record.id)
+            writer.write(record.id, record.comment, record.seq)
+            seq_ids.append(record.id)
             if record.num % batch_size == batch_size - 1:
                 reader_done = False
                 break
-        return reader_done
+        return reader_done, seq_ids
 
 
 def make_tmp_dir(workspace, prefix, suffix):
@@ -140,43 +149,63 @@ def make_tmp_dir(workspace, prefix, suffix):
 
 
 def polish_batch(
-    tmp_dir,
-    input_pipepath,
-    confirm_pipepath,
-    to_polish,
-    batch_idx,
-    record_ids,
-    batch_confirmpipe,
-    bfs_dir,
-    verbose,
+                batch_dir,
+                batch_name_input_pipe,
+                batch_target_ids_input_ready_pipe,
+                target_ids_input_pipe,
+                bfs_ready_pipe,
+                batch_seqs,
+                batch_num,
+                seq_ids,
+                batch_done_pipe,
+                bfs_dir,
+                k_values,
+                verbose
 ):
-    with open(input_pipepath, "w") as f:
-        print(batch_idx, file=f)
-    with open(confirm_pipepath) as f:
+    with open(batch_name_input_pipe, 'w') as f:
+        print(batch_num, file=f)
+    with open(batch_target_ids_input_ready_pipe) as f:
         f.read()
 
-    os.mkfifo(join(tmp_dir, batch_confirmpipe))
-
-    with open(join(tmp_dir, SEQ_IDS_FILENAME), "w") as f:
-        for id in record_ids:
+    with open(join(batch_dir, SEQ_IDS_FILENAME), 'w') as f:
+        for id in seq_ids:
             print(id, file=f)
 
+    k_values = ' '.join(f'-k{k}' for k in k_values)
+
     process = sp.Popen(
-        ["polish-batch", to_polish, args.K, str(batch_idx), batch_confirmpipe, bfs_dir]
+        ["polish-batch",
+        batch_seqs,
+        bfs_dir,
+        BF_NAME_TEMPLATE,
+        k_values,
+        f'--seq-ids {SEQ_IDS_FILENAME}',
+        f'--bfs-ids-pipe {target_ids_input_pipe}',
+        f'--bfs-ready-pipe {bfs_ready_pipe}',
+        f'--batch-done-pipe {batch_done_pipe}',
+        batch_done_pipe ]
         + (["--verbose"] if verbose else []),
-        cwd=tmp_dir,
+        cwd=batch_dir,
     )
     watch_process(process)
 
 
-def start_reaper():
-    # watch process
-    pass
+def start_reaper(workspace, prefix, output_seqs):
+    process = sp.Popen(["goldrush-edit-reaper", workspace, prefix, output_seqs])
+    watch_process(process)
+
+def create_end_batch(end_file):
+    with open(end_file, "w") as f:
+        print('1899', file=f) # :O?!
+
+def confirm_polishing_done(polishing_done_pipepath):
+    with open(polishing_done_pipepath, "w") as f:
+        f.write(str(1))
 
 def polish_seqs(
-    reader,
     seqs_to_polish,
     polishing_seqs,
+    output_seqs,
     k_values,
     kmer_threshold,
     batch_size,
@@ -213,54 +242,57 @@ def polish_seqs(
         polishing_seqs,
         polishing_seqs_index,
         kmer_threshold,
+        k_values,
         batch_name_input_pipe,
         batch_target_ids_input_ready_pipe
     )
 
     # Temporary name for the seq(s) to polish
     batch_seqs = "batch.fa"
-    last_batch = 0
-    batches_done = 0
+    batch_num = 0
 
-    start_reaper()
+    #start_reaper(workspace, prefix, output_seqs)
 
     btllib.log_info("Polishing batches...")
     reader_done = False
-    while not reader_done:
-        batch_paths.clear()
+    with btllib.SeqReader(seqs_to_polish, btllib.SeqReaderFlag.LONG_MODE) as reader:
+        while not reader_done:
+            batch_dir = make_tmp_dir(workspace, prefix, batch_num)
 
-        for batch_idx in range(batch_size):
-            if reader_done:
-                break
-
-            record_ids = []
-
-            tmp_dir = make_tmp_dir(polishing_workspace, prefix, batch2_idx)
-            batch2_paths.append(tmp_dir)
-
-            reader_done = get_next_batch_of_contigs(
-                reader, record_ids, join(tmp_dir, contig_tmppath), batch1_size
+            reader_done, seq_ids = get_next_batch_of_contigs(
+                reader, join(batch_dir, batch_seqs), batch_size
             )
 
-            if len(record_ids) > 0:
+            batch_done_pipe = join(batch_dir, BATCH_NAME_INPUT_PIPE)
+            os.mkfifo(batch_done_pipe)
+
+            if len(seq_ids) > 0:
+                target_ids_input_pipe = join(batch_dir, TARGET_IDS_INPUT_PIPE)
+                bfs_ready_pipe = join(batch_dir, BFS_READY_PIPE)
+
                 polish_batch(
-                    tmp_dir,
-                    input_pipepath,
-                    confirm_pipepath,
-                    contig_tmppath,
-                    batch2_idx,
-                    record_ids,
-                    batch2_confirmpipe,
+                    batch_dir,
+                    batch_name_input_pipe,
+                    batch_target_ids_input_ready_pipe,
+                    target_ids_input_pipe,
+                    bfs_ready_pipe,
+                    batch_seqs,
+                    batch_num,
+                    seq_ids,
+                    batch_done_pipe,
                     bfs_dir,
-                    verbose,
+                    k_values,
+                    verbose
                 )
             else:
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-                batch2_paths.pop()
+                create_end_batch(POLISHING_OVER_FILE)
+                confirm_polishing_done(batch_done_pipe)
 
-    btllib.log_info("Done polishing batches, ending helper process...")
-    with open(input_pipepath, "w") as f:
-        print("x", file=f)
+            batch_num += 1
+            reader_done = True
+
+    btllib.log_info("Done polishing batches, ending BF builder process...")
+    end_bf_builder(batch_name_input_pipe)
     build_targeted_bfs_process.wait()
     shutil.rmtree(bfs_dir, ignore_errors=True)
     btllib.log_info("Polisher done")
@@ -278,16 +310,12 @@ if __name__ == "__main__":
             f"GoldRush-Edit: {args.shared_mem} not present. Polishing might run slower."
         )
 
-    with btllib.SeqReader(
-        args.seqs_to_polish, btllib.SeqReaderFlag.LONG_MODE
-    ) as reader:
-        polish_seqs(
-            reader,
-            args.seqs_to_polish,
-            args.polishing_seqs,
-            args.k,
-            args.kmer_threshold,
-            args.bsize,
-            workspace,
-            args.verbose,
-        )
+    polish_seqs(args.seqs_to_polish,
+        args.polishing_seqs,
+        args.output_seqs,
+        args.k,
+        args.kmer_threshold,
+        args.bsize,
+        workspace,
+        args.verbose,
+    )

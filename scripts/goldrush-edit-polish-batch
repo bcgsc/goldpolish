@@ -22,9 +22,9 @@ def get_cli_args():
         "-k", action="append", default=[], help="List of k values to use for polishing."
     )
     parser.add_argument("--seq-ids", default="seq_ids")
-    parser.add_argument("--bfs_ids_pipe", default="targeted_input")
-    parser.add_argument("--bfs_ready_pipe", default="targeted_ready")
-    parser.add_argument("--polishing_done_pipe", default="polishing_done")
+    parser.add_argument("--bfs-ids-pipe", default="targeted_input")
+    parser.add_argument("--bfs-ready-pipe", default="targeted_ready")
+    parser.add_argument("--batch-done-pipe", default="batch_done")
     parser.add_argument("-t", "--threads", type=int, default=2)
     parser.add_argument("-v", "--verbose", action="store_true")
 
@@ -90,8 +90,8 @@ def cleanup_bfs(bfs_dirpath, bfs):
         os.remove(join(bfs_dirpath, bf))
 
 
-def confirm_polishing_done(polishing_done_pipepath):
-    with open(polishing_done_pipepath, "w") as f:
+def confirm_batch_done(batch_done_pipepath):
+    with open(batch_done_pipepath, "w") as f:
         f.write(str(1))
 
 
@@ -133,4 +133,4 @@ if __name__ == "__main__":
     if args.verbose:
         print_info(polishing_stdout, polishing_stderr)
 
-    confirm_polishing_done(args.polishing_done_pipe)
+    confirm_batch_done(args.batch_done_pipe)
