@@ -2,11 +2,14 @@ import base64
 import uuid
 import threading
 import os
+from os.path import join
 import signal
 import time
+import fcntl
 
 INIT_PID = 1
 PARENT_QUERY_PERIOD = 1  # In seconds
+THREADS_IN_USE_FILE = "threads_in_use"
 
 
 def get_random_name():
@@ -50,3 +53,29 @@ def bind_to_parent():
         process_terminate()
 
     threading.Thread(target=_bind_to_parent, daemon=True).start()
+
+
+def create_threads_in_use(path, prefix):
+    fpath = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    with open(fpath, "w") as f:
+        print(0, file=f)
+
+
+def get_threads_in_use(path, prefix):
+    fpath = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    with open(fpath, "r") as f:
+        fcntl.flock(f, fcntl.LOCK_SH)
+        threads = int(f.read())
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return threads
+
+
+def update_threads_in_use(path, prefix, threads_delta):
+    fpath = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    with open(fpath, "r+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        threads = int(f.read())
+        os.ftruncate(f.fileno(), 0)
+        f.seek(0)
+        print(threads + threads_delta, file=f)
+        fcntl.flock(f, fcntl.LOCK_UN)

@@ -20,7 +20,7 @@ import time
 
 import btllib
 
-from goldrush_edit_utils import get_random_name, watch_process
+from goldrush_edit_utils import get_random_name, watch_process, create_threads_in_use, get_threads_in_use, update_threads_in_use
 
 SEQ_IDS_FILENAME = "seq_ids"
 BF_NAME_TEMPLATE = "{}-k{}.bf"
@@ -30,6 +30,9 @@ BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
 TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
 BATCH_DONE_PIPE = "polishing_done"
+BF_BUILDER_THREADS = 28
+BATCH_THREADS = 2
+SPAWN_DELAY = 2
 POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
@@ -45,9 +48,10 @@ def get_cli_args():
     parser.add_argument("polishing_seqs")
     parser.add_argument("output_seqs")
     parser.add_argument("-k", action="append", default=[])
-    parser.add_argument("-t", "--kmer-threshold", type=int, default=5)
+    parser.add_argument("-c", "--kmer-threshold", type=int, default=5)
     parser.add_argument("-b", "--bsize", default=1, type=int, help="Batch size.")
     parser.add_argument("-m", "--shared-mem", default="/dev/shm")
+    parser.add_argument("-t", "--threads", type=int, default=48)
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
@@ -122,6 +126,7 @@ def run_bf_builder(
             polishing_seqs,
             polishing_seqs_index,
             str(kmer_threshold),
+            str(BF_BUILDER_THREADS)
         ]
         + k_values,
         cwd=bfs_dir,
@@ -160,7 +165,6 @@ def make_tmp_dir(workspace, prefix, suffix):
     os.mkdir(tmp_dir)
     return tmp_dir
 
-
 def polish_batch(
     batch_dir,
     batch_name_input_pipe,
@@ -173,6 +177,9 @@ def polish_batch(
     batch_done_pipe,
     bfs_dir,
     k_values,
+    workspace,
+    prefix,
+    threads,
     verbose,
 ):
     with open(batch_name_input_pipe, "w") as f:
@@ -195,18 +202,20 @@ def polish_batch(
     k_values = [f"-k{k}" for k in k_values]
 
     process = sp.Popen(
-        [GOLDRUSH_EDIT_POLISH_BATCH, batch_seqs, bfs_dir]
+        [ GOLDRUSH_EDIT_POLISH_BATCH, batch_seqs, bfs_dir, workspace, prefix ]
         + k_values
         + bfs
         + [
             "--seq-ids",
-            f"{seq_ids_file}",
+            seq_ids_file,
             "--bfs-ids-pipe",
-            f"{target_ids_input_pipe}",
+            target_ids_input_pipe,
             "--bfs-ready-pipe",
-            f"{bfs_ready_pipe}",
+            bfs_ready_pipe,
             "--batch-done-pipe",
-            f"{batch_done_pipe}",
+            batch_done_pipe,
+            "--threads",
+            str(threads),
         ]
         + (["--verbose"] if verbose else []),
         cwd=batch_dir,
@@ -239,6 +248,7 @@ def polish_seqs(
     kmer_threshold,
     batch_size,
     workspace,
+    threads,
     verbose,
 ):
     prefix = get_random_name()
@@ -270,6 +280,10 @@ def polish_seqs(
         batch_target_ids_input_ready_pipe,
     )
 
+    create_threads_in_use(workspace, prefix)
+    update_threads_in_use(workspace, prefix, BF_BUILDER_THREADS)
+    threads_in_use = BF_BUILDER_THREADS
+
     # Temporary name for the seq(s) to polish
     batch_seqs = "batch.fa"
     batch_polished_seqs = "batch.ntedited.prepd.sealer_scaffold.upper.fa"
@@ -281,6 +295,11 @@ def polish_seqs(
     reader_done = False
     with btllib.SeqReader(seqs_to_polish, btllib.SeqReaderFlag.LONG_MODE) as reader:
         while not reader_done:
+            while True:
+                threads_in_use = get_threads_in_use(workspace, prefix)
+                if threads_in_use <= threads - BATCH_THREADS: break
+                time.sleep(SPAWN_DELAY)
+
             batch_dir = make_tmp_dir(workspace, prefix, batch_num)
 
             reader_done, seq_ids = get_next_batch_of_contigs(
@@ -289,10 +308,6 @@ def polish_seqs(
 
             batch_done_pipe = join(batch_dir, BATCH_DONE_PIPE)
             os.mkfifo(batch_done_pipe)
-
-            if batch_num == 1000:
-                reader_done = True
-                seq_ids = []
 
             if reader_done:
                 assert len(seq_ids) == 0
@@ -307,6 +322,7 @@ def polish_seqs(
                     bfs_dir, f"{batch_num}{SEPARATOR}{BFS_READY_PIPE}"
                 )
 
+                update_threads_in_use(workspace, prefix, BATCH_THREADS)
                 polish_batch(
                     batch_dir,
                     batch_name_input_pipe,
@@ -319,6 +335,9 @@ def polish_seqs(
                     batch_done_pipe,
                     bfs_dir,
                     k_values,
+                    workspace,
+                    prefix,
+                    BATCH_THREADS,
                     verbose,
                 )
 
@@ -351,5 +370,6 @@ if __name__ == "__main__":
         args.kmer_threshold,
         args.bsize,
         workspace,
+        args.threads,
         args.verbose,
     )

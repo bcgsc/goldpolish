@@ -2,6 +2,18 @@
 
 import shutil
 import os
+from os.path import (
+    join,
+    dirname,
+    realpath,
+    abspath,
+    isfile,
+    isdir,
+    exists,
+    splitext,
+    basename,
+    getsize,
+)
 import time
 import signal
 import atexit
@@ -31,7 +43,13 @@ def cleanup(workspace_path, prefix):
     time.sleep(CLEANING_DELAY)
     for f in os.listdir(workspace_path):
         if f.startswith(prefix):
-            shutil.rmtree(os.path.join(workspace_path, f), ignore_errors=True)
+            fpath = join(workspace_path, f)
+            if isdir(fpath):
+                shutil.rmtree(fpath, ignore_errors=True)
+            elif isfile(fpath):
+                os.remove(fpath)
+            else:
+                raise ValueError(f"Unknown file type: {fpath}")
 
 
 def handle_exit(workspace_path, prefix):

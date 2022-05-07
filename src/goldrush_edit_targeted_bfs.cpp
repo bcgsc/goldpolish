@@ -238,6 +238,7 @@ main(int argc, char** argv)
   auto* const mapped_seqs_filepath = argv[arg++];
   auto* const mapped_seqs_index_filepath = argv[arg++];
   const auto kmer_threshold = std::stoi(argv[arg++]);
+  const auto threads = std::stoi(argv[arg++]);
   while (arg < argc) {
     k_values.push_back(std::stoi(argv[arg++]));
   }
@@ -245,7 +246,6 @@ main(int argc, char** argv)
   size_t cbf_bytes = 10ULL * 1024ULL * 1024ULL; // NOLINT
   size_t bf_bytes = 512ULL * 1024ULL;           // NOLINT
   unsigned hash_num = 4;                        // NOLINT
-  unsigned threads = 7;                         // NOLINT
 
   omp_set_nested(1);
   omp_set_num_threads(int(threads));

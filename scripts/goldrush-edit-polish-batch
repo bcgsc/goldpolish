@@ -7,7 +7,7 @@ import subprocess as sp
 
 import btllib
 
-from goldrush_edit_utils import bind_to_parent
+from goldrush_edit_utils import bind_to_parent, update_threads_in_use
 
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 
@@ -18,6 +18,8 @@ def get_cli_args():
     )
     parser.add_argument("seqs_to_polish")
     parser.add_argument("bfs_dir")
+    parser.add_argument("workspace")
+    parser.add_argument("prefix")
     parser.add_argument(
         "-k", action="append", default=[], help="List of k values to use for polishing."
     )
@@ -134,5 +136,7 @@ if __name__ == "__main__":
 
     if args.verbose:
         print_info(polishing_stdout, polishing_stderr)
+
+    update_threads_in_use(args.workspace, args.prefix, -args.threads)
 
     confirm_batch_done(args.batch_done_pipe)
