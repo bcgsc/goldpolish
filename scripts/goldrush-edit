@@ -20,7 +20,13 @@ import time
 
 import btllib
 
-from goldrush_edit_utils import get_random_name, watch_process, create_threads_in_use, get_threads_in_use, update_threads_in_use
+from goldrush_edit_utils import (
+    get_random_name,
+    watch_process,
+    create_threads_in_use,
+    get_threads_in_use,
+    update_threads_in_use,
+)
 
 SEQ_IDS_FILENAME = "seq_ids"
 BF_NAME_TEMPLATE = "{}-k{}.bf"
@@ -30,9 +36,9 @@ BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
 TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
 BATCH_DONE_PIPE = "polishing_done"
-BF_BUILDER_THREADS = 28
-BATCH_THREADS = 2
-SPAWN_DELAY = 2
+BF_BUILDER_THREADS = 32
+BATCH_THREADS = 1
+SPAWN_DELAY = 0.5
 POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
@@ -40,6 +46,14 @@ GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
 GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
 END_SYMBOL = "x"
+
+
+def max_threads_in_use(threads):
+    """
+    Using `threads` threads is too pessimistic. In practice,
+    because of waiting on BFs, we can use more threads.
+    """
+    return threads * 1.4
 
 
 def get_cli_args():
@@ -75,30 +89,34 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
     seqs_to_polish_index = f"{basename(seqs_to_polish_path)}.index"
     mappings = f"{basename(seqs_to_polish_path)}.mapping.tsv"
 
+    k_values = " ".join(str(k) for k in k_values)
+
+    try:
+        p = sp.run(
+            [
+                f""" \
+        {GOLDRUSH_EDIT_MAKE} \
+        polishing_seqs={polishing_seqs_path} \
+        seqs_to_polish={seqs_to_polish_path} \
+        K='{k_values}' \
+        {seqs_to_polish_index} \
+        {mappings} \
+        {polishing_seqs_index} \
+    """
+            ],
+            shell=True,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+    except sp.CalledProcessError as e:
+        btllib.log_error(f"{e.stderr}")
+        raise e
+    btllib.log_info(p.stdout + p.stderr)
+
     polishing_seqs_index = abspath(polishing_seqs_index)
     seqs_to_polish_index = abspath(seqs_to_polish_index)
     mappings = abspath(mappings)
-
-    k_values = " ".join(str(k) for k in k_values)
-
-    p = sp.run(
-        [
-            f""" \
-    {GOLDRUSH_EDIT_MAKE} \
-    polishing_seqs={polishing_seqs_path} \
-    seqs_to_polish={seqs_to_polish_path} \
-    K='{k_values}' \
-    {seqs_to_polish_index} \
-    {mappings} \
-    {polishing_seqs_index} \
-  """
-        ],
-        shell=True,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    btllib.log_info(p.stdout + p.stderr)
 
     return polishing_seqs_index, seqs_to_polish_index, mappings
 
@@ -126,7 +144,7 @@ def run_bf_builder(
             polishing_seqs,
             polishing_seqs_index,
             str(kmer_threshold),
-            str(BF_BUILDER_THREADS)
+            str(BF_BUILDER_THREADS),
         ]
         + k_values,
         cwd=bfs_dir,
@@ -137,7 +155,7 @@ def run_bf_builder(
         batch_target_ids_input_ready_pipe
     ):
         time.sleep(2)
-    btllib.log_info("build_targeted_bfs is ready!")
+    btllib.log_info(f"{GOLDRUSH_EDIT_TARGETED_BFS} is ready!")
 
     return process
 
@@ -164,6 +182,7 @@ def make_tmp_dir(workspace, prefix, suffix):
     tmp_dir = join(workspace, f"{prefix}{SEPARATOR}{suffix}")
     os.mkdir(tmp_dir)
     return tmp_dir
+
 
 def polish_batch(
     batch_dir,
@@ -202,7 +221,7 @@ def polish_batch(
     k_values = [f"-k{k}" for k in k_values]
 
     process = sp.Popen(
-        [ GOLDRUSH_EDIT_POLISH_BATCH, batch_seqs, bfs_dir, workspace, prefix ]
+        [GOLDRUSH_EDIT_POLISH_BATCH, batch_seqs, bfs_dir, workspace, prefix]
         + k_values
         + bfs
         + [
@@ -297,7 +316,8 @@ def polish_seqs(
         while not reader_done:
             while True:
                 threads_in_use = get_threads_in_use(workspace, prefix)
-                if threads_in_use <= threads - BATCH_THREADS: break
+                if threads_in_use <= max_threads_in_use(threads) - BATCH_THREADS:
+                    break
                 time.sleep(SPAWN_DELAY)
 
             batch_dir = make_tmp_dir(workspace, prefix, batch_num)

@@ -14,7 +14,7 @@ import btllib
 
 from goldrush_edit_utils import bind_to_parent
 
-RUSH_DELAY = 2  # Seconds
+RUSH_DELAY = 1  # Seconds
 BATCH_DONE_PIPE = "polishing_done"
 POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"

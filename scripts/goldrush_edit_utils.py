@@ -78,4 +78,5 @@ def update_threads_in_use(path, prefix, threads_delta):
         os.ftruncate(f.fileno(), 0)
         f.seek(0)
         print(threads + threads_delta, file=f)
+        os.fsync(f)
         fcntl.flock(f, fcntl.LOCK_UN)
