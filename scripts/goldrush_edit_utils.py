@@ -10,6 +10,7 @@ import fcntl
 INIT_PID = 1
 PARENT_QUERY_PERIOD = 1  # In seconds
 THREADS_IN_USE_FILE = "threads_in_use"
+THREADS_IN_USE_LOCK_FILE = "threads_in_use.lock"
 
 
 def get_random_name():
@@ -56,27 +57,42 @@ def bind_to_parent():
 
 
 def create_threads_in_use(path, prefix):
-    fpath = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
-    with open(fpath, "w") as f:
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    lock_path = join(path, f"{prefix}-{THREADS_IN_USE_LOCK_FILE}")
+
+    with open(threads_in_use_path, "w") as f:
         print(0, file=f)
+    with open(lock_path, "w") as f:
+        pass
 
 
 def get_threads_in_use(path, prefix):
-    fpath = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
-    with open(fpath, "r") as f:
-        fcntl.flock(f, fcntl.LOCK_SH)
-        threads = int(f.read())
-        fcntl.flock(f, fcntl.LOCK_UN)
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+
+    lock_path = join(path, f"{prefix}-{THREADS_IN_USE_LOCK_FILE}")
+    lock = os.open(lock_path, os.O_RDONLY)
+
+    fcntl.flock(lock, fcntl.LOCK_SH)
+    with open(threads_in_use_path, "r") as threads_in_use:
+        threads = int(threads_in_use.read())
+    fcntl.flock(lock, fcntl.LOCK_UN)
+
+    os.close(lock)
+
     return threads
 
 
 def update_threads_in_use(path, prefix, threads_delta):
-    fpath = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
-    with open(fpath, "r+") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        threads = int(f.read())
-        os.ftruncate(f.fileno(), 0)
-        f.seek(0)
-        print(threads + threads_delta, file=f)
-        os.fsync(f)
-        fcntl.flock(f, fcntl.LOCK_UN)
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+
+    lock_path = join(path, f"{prefix}-{THREADS_IN_USE_LOCK_FILE}")
+    lock = os.open(lock_path, os.O_RDONLY)
+
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    with open(threads_in_use_path, "r") as threads_in_use:
+        threads = int(threads_in_use.read())
+    with open(threads_in_use_path, "w") as threads_in_use:
+        print(threads + threads_delta, file=threads_in_use)
+    fcntl.flock(lock, fcntl.LOCK_UN)
+
+    os.close(lock)
