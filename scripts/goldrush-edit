@@ -24,8 +24,9 @@ from goldrush_edit_utils import (
     get_random_name,
     watch_process,
     create_threads_in_use,
-    get_threads_in_use,
-    update_threads_in_use,
+    create_simultaneous_batch_processes,
+    get_simultaneous_batch_processes,
+    update_simultaneous_batch_processes,
 )
 
 SEQ_IDS_FILENAME = "seq_ids"
@@ -37,8 +38,9 @@ TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
 BATCH_DONE_PIPE = "polishing_done"
 BF_BUILDER_THREADS = 32
+MAX_SIMULTANEOUS_BATCH_PROCESSES = 200
 BATCH_THREADS = 1
-SPAWN_DELAY = 0.2
+SPAWN_DELAY = 0.05
 POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
@@ -46,14 +48,6 @@ GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
 GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
 END_SYMBOL = "x"
-
-
-def max_threads_in_use(threads):
-    """
-    Using `threads` threads is too pessimistic. In practice,
-    because of waiting on BFs, we can use more threads.
-    """
-    return threads * 1.125
 
 
 def get_cli_args():
@@ -199,6 +193,7 @@ def polish_batch(
     workspace,
     prefix,
     threads,
+    max_threads,
     verbose,
 ):
     with open(batch_name_input_pipe, "w") as f:
@@ -221,7 +216,14 @@ def polish_batch(
     k_values = [f"-k{k}" for k in k_values]
 
     process = sp.Popen(
-        [GOLDRUSH_EDIT_POLISH_BATCH, batch_seqs, bfs_dir, workspace, prefix]
+        [
+            GOLDRUSH_EDIT_POLISH_BATCH,
+            batch_seqs,
+            bfs_dir,
+            workspace,
+            prefix,
+            str(max_threads),
+        ]
         + k_values
         + bfs
         + [
@@ -299,9 +301,8 @@ def polish_seqs(
         batch_target_ids_input_ready_pipe,
     )
 
-    create_threads_in_use(workspace, prefix)
-    update_threads_in_use(workspace, prefix, BF_BUILDER_THREADS)
-    threads_in_use = BF_BUILDER_THREADS
+    create_simultaneous_batch_processes(workspace, prefix)
+    create_threads_in_use(workspace, prefix, BF_BUILDER_THREADS)
 
     # Temporary name for the seq(s) to polish
     batch_seqs = "batch.fa"
@@ -315,8 +316,10 @@ def polish_seqs(
     with btllib.SeqReader(seqs_to_polish, btllib.SeqReaderFlag.LONG_MODE) as reader:
         while not reader_done:
             while True:
-                threads_in_use = get_threads_in_use(workspace, prefix)
-                if threads_in_use <= max_threads_in_use(threads) - BATCH_THREADS:
+                simultaneous_batch_processes = get_simultaneous_batch_processes(
+                    workspace, prefix
+                )
+                if simultaneous_batch_processes <= MAX_SIMULTANEOUS_BATCH_PROCESSES - 1:
                     break
                 time.sleep(SPAWN_DELAY)
 
@@ -342,7 +345,7 @@ def polish_seqs(
                     bfs_dir, f"{batch_num}{SEPARATOR}{BFS_READY_PIPE}"
                 )
 
-                update_threads_in_use(workspace, prefix, BATCH_THREADS)
+                update_simultaneous_batch_processes(workspace, prefix, 1)
                 polish_batch(
                     batch_dir,
                     batch_name_input_pipe,
@@ -358,6 +361,7 @@ def polish_seqs(
                     workspace,
                     prefix,
                     BATCH_THREADS,
+                    threads,
                     verbose,
                 )
 

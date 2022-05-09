@@ -10,6 +10,9 @@
 #include <unordered_map>
 #include <utility>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 struct SeqCoordinates
 {
   size_t seq_start, seq_len;
@@ -49,7 +52,7 @@ std::tuple<const char*, size_t>
 SeqIndex::get_seq(const std::string& id) const
 {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  thread_local static std::ifstream* seqs_file;
+  thread_local static int seqs_file;
   thread_local static bool seqs_file_initialized = false;
 
   static const size_t max_seqlen = 1024ULL * 1024ULL;
@@ -58,7 +61,9 @@ SeqIndex::get_seq(const std::string& id) const
   thread_local static bool seq_initialized = false;
 
   if (!seqs_file_initialized) {
-    seqs_file = new std::ifstream(seqs_filepath);
+    seqs_file = open(seqs_filepath.c_str(), O_RDONLY);
+    const auto ret = posix_fadvise(seqs_file, 0, 0, POSIX_FADV_RANDOM);
+    btllib::check_error(ret != 0, "posix_fadvise failed.");
     seqs_file_initialized = true;
   }
 
@@ -72,8 +77,13 @@ SeqIndex::get_seq(const std::string& id) const
   btllib::check_error(seq_len >= max_seqlen,
                       FN_NAME + ": Seq size over max limit.");
   // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-  seqs_file->seekg(std::ifstream::pos_type(coords.seq_start));
-  seqs_file->read(seq, std::streamsize(seq_len));
+  const auto lseek_ret = lseek(seqs_file, coords.seq_start, SEEK_SET);
+  btllib::check_error(lseek_ret == -1,
+                      FN_NAME + ": lseek: " + btllib::get_strerror());
+  const auto read_ret = read(seqs_file, seq, seq_len);
+  btllib::check_error(read_ret != int(seq_len),
+                      FN_NAME + ": read did not read all bytes.");
+
   seq[seq_len] = '\0';
 
   return decltype(SeqIndex::get_seq<i>(id)){ seq, seq_len };

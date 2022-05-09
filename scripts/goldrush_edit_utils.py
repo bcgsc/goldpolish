@@ -9,8 +9,8 @@ import fcntl
 
 INIT_PID = 1
 PARENT_QUERY_PERIOD = 1  # In seconds
+SIMULTANEOUS_BATCH_PROCESSES_FILE = "simultaneous_batch_processes"
 THREADS_IN_USE_FILE = "threads_in_use"
-THREADS_IN_USE_LOCK_FILE = "threads_in_use.lock"
 
 
 def get_random_name():
@@ -56,43 +56,102 @@ def bind_to_parent():
     threading.Thread(target=_bind_to_parent, daemon=True).start()
 
 
-def create_threads_in_use(path, prefix):
-    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
-    lock_path = join(path, f"{prefix}-{THREADS_IN_USE_LOCK_FILE}")
+def create_threadsafe_counter(filepath, initial_value=0):
+    lock_path = f"{filepath}.lock"
 
-    with open(threads_in_use_path, "w") as f:
-        print(0, file=f)
+    with open(filepath, "w") as f:
+        print(initial_value, file=f)
     with open(lock_path, "w") as f:
         pass
 
 
-def get_threads_in_use(path, prefix):
-    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
-
-    lock_path = join(path, f"{prefix}-{THREADS_IN_USE_LOCK_FILE}")
+def get_threadsafe_counter(filepath):
+    lock_path = f"{filepath}.lock"
     lock = os.open(lock_path, os.O_RDONLY)
 
     fcntl.flock(lock, fcntl.LOCK_SH)
-    with open(threads_in_use_path, "r") as threads_in_use:
-        threads = int(threads_in_use.read())
+    with open(filepath, "r") as counter:
+        count = int(counter.read())
     fcntl.flock(lock, fcntl.LOCK_UN)
 
     os.close(lock)
 
-    return threads
+    return count
 
 
-def update_threads_in_use(path, prefix, threads_delta):
-    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
-
-    lock_path = join(path, f"{prefix}-{THREADS_IN_USE_LOCK_FILE}")
+def update_threadsafe_counter(filepath, delta):
+    lock_path = f"{filepath}.lock"
     lock = os.open(lock_path, os.O_RDONLY)
 
     fcntl.flock(lock, fcntl.LOCK_EX)
-    with open(threads_in_use_path, "r") as threads_in_use:
-        threads = int(threads_in_use.read())
-    with open(threads_in_use_path, "w") as threads_in_use:
-        print(threads + threads_delta, file=threads_in_use)
+    with open(filepath, "r") as counter:
+        count = int(counter.read())
+    with open(filepath, "w") as counter:
+        print(count + delta, file=counter)
     fcntl.flock(lock, fcntl.LOCK_UN)
 
     os.close(lock)
+
+
+def compare_update_threadsafe_counter(filepath, max, delta):
+    """
+    If the counter value is less than or equal to max - delta,
+    then update the counter value and return True.
+    """
+    lock_path = f"{filepath}.lock"
+    lock = os.open(lock_path, os.O_RDONLY)
+    updated = False
+
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    with open(filepath, "r") as counter:
+        count = int(counter.read())
+    if count <= max - delta:
+        with open(filepath, "w") as counter:
+            print(count + delta, file=counter)
+        updated = True
+    fcntl.flock(lock, fcntl.LOCK_UN)
+
+    os.close(lock)
+
+    return updated
+
+
+def create_threads_in_use(path, prefix, initial_value):
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    create_threadsafe_counter(threads_in_use_path, initial_value)
+
+
+def get_threads_in_use(path, prefix):
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    return get_threadsafe_counter(threads_in_use_path)
+
+
+def update_threads_in_use(path, prefix, delta):
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    update_threadsafe_counter(threads_in_use_path, delta)
+
+
+def compare_update_threads_in_use(path, prefix, max, delta):
+    threads_in_use_path = join(path, f"{prefix}-{THREADS_IN_USE_FILE}")
+    return compare_update_threadsafe_counter(threads_in_use_path, max, delta)
+
+
+def create_simultaneous_batch_processes(path, prefix):
+    simultaneous_batch_processes_path = join(
+        path, f"{prefix}-{SIMULTANEOUS_BATCH_PROCESSES_FILE}"
+    )
+    create_threadsafe_counter(simultaneous_batch_processes_path)
+
+
+def get_simultaneous_batch_processes(path, prefix):
+    simultaneous_batch_processes_path = join(
+        path, f"{prefix}-{SIMULTANEOUS_BATCH_PROCESSES_FILE}"
+    )
+    return get_threadsafe_counter(simultaneous_batch_processes_path)
+
+
+def update_simultaneous_batch_processes(path, prefix, delta):
+    simultaneous_batch_processes_path = join(
+        path, f"{prefix}-{SIMULTANEOUS_BATCH_PROCESSES_FILE}"
+    )
+    update_threadsafe_counter(simultaneous_batch_processes_path, delta)

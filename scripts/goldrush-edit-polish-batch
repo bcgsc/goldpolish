@@ -4,12 +4,19 @@ import os
 import argparse
 from os.path import join, dirname, realpath, abspath, isfile, exists, splitext, basename
 import subprocess as sp
+import time
 
 import btllib
 
-from goldrush_edit_utils import bind_to_parent, update_threads_in_use
+from goldrush_edit_utils import (
+    bind_to_parent,
+    update_threads_in_use,
+    compare_update_threads_in_use,
+    update_simultaneous_batch_processes,
+)
 
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
+RETRY_DELAY = 0.15
 
 
 def get_cli_args():
@@ -20,6 +27,7 @@ def get_cli_args():
     parser.add_argument("bfs_dir")
     parser.add_argument("workspace")
     parser.add_argument("prefix")
+    parser.add_argument("max_threads", type=int)
     parser.add_argument(
         "-k", action="append", default=[], help="List of k values to use for polishing."
     )
@@ -128,15 +136,22 @@ if __name__ == "__main__":
     seq_ids = get_seq_ids(args.seq_ids)
     get_bfs_ready(args.bfs_dir, args.bfs_ids_pipe, seq_ids, args.bfs_ready_pipe)
 
+    while not compare_update_threads_in_use(
+        args.workspace, args.prefix, args.max_threads, args.threads
+    ):
+        time.sleep(RETRY_DELAY)
+
     polishing_stdout, polishing_stderr = run_polishing(
         args.seqs_to_polish, args.b, args.k, args.threads
     )
+
+    update_threads_in_use(args.workspace, args.prefix, -args.threads)
 
     cleanup_bfs(args.bfs_dir, args.b)
 
     if args.verbose:
         print_info(polishing_stdout, polishing_stderr)
 
-    update_threads_in_use(args.workspace, args.prefix, -args.threads)
+    update_simultaneous_batch_processes(args.workspace, args.prefix, -1)
 
     confirm_batch_done(args.batch_done_pipe)
