@@ -16,7 +16,7 @@ from goldrush_edit_utils import (
 )
 
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
-RETRY_DELAY = 0.15
+RETRY_DELAY = 0.2
 
 
 def get_cli_args():

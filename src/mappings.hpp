@@ -39,6 +39,7 @@ private:
                    const SeqIndex& target_seqs_index,
                    unsigned mx_threshold_min);
   void load_sam(const std::string& filepath, const SeqIndex& target_seqs_index);
+  void load_paf(const std::string& filepath, const SeqIndex& target_seqs_index);
 
   void filter(double max_mapped_seqs_per_target_10kbp,
               unsigned mx_threshold_min,

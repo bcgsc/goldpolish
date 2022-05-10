@@ -37,7 +37,7 @@ BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
 TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
 BATCH_DONE_PIPE = "polishing_done"
-BF_BUILDER_THREADS = 32
+BF_BUILDER_THREADS = 24
 MAX_SIMULTANEOUS_BATCH_PROCESSES = 200
 BATCH_THREADS = 1
 SPAWN_DELAY = 0.05
@@ -83,6 +83,18 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
     seqs_to_polish_index = f"{basename(seqs_to_polish_path)}.index"
     mappings = f"{basename(seqs_to_polish_path)}.mapping.tsv"
 
+    sam_file = None
+    paf_file = None
+    for f in os.listdir():
+        if f.endswith('.sam') or f.endswith('.bam'):
+            sam_file = f
+            mappings = ''
+            break
+        if f.endswith('.paf'):
+            paf_file = f
+            mappings = ''
+            break
+
     k_values = " ".join(str(k) for k in k_values)
 
     try:
@@ -110,7 +122,13 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
 
     polishing_seqs_index = abspath(polishing_seqs_index)
     seqs_to_polish_index = abspath(seqs_to_polish_index)
-    mappings = abspath(mappings)
+
+    if sam_file != None:
+        mappings = abspath(sam_file)
+    elif paf_file != None:
+        mappings = abspath(paf_file)
+    else:
+        mappings = abspath(mappings)
 
     return polishing_seqs_index, seqs_to_polish_index, mappings
 

@@ -21,6 +21,8 @@ AllMappings::AllMappings(const std::string& filepath,
   if (btllib::endswith(filepath, ".sam") ||
       btllib::endswith(filepath, ".bam")) {
     load_sam(filepath, target_seqs_index);
+  } else if (btllib::endswith(filepath, ".paf")) {
+    load_paf(filepath, target_seqs_index);
   } else {
     load_ntlink(filepath, target_seqs_index, mx_threshold_min);
     filter(mx_max_mapped_seqs_per_target_10kbp,
@@ -80,6 +82,21 @@ void
 AllMappings::load_sam(const std::string& filepath,
                       const SeqIndex& target_seqs_index)
 {
+  enum Column
+  {
+    QNAME = 1,
+    FLAG,
+    RNAME,
+    POS,
+    MAPQ,
+    CIGAR,
+    RNEXT,
+    PNEXT,
+    TLEN,
+    SEQ,
+    QUAL
+  };
+
   btllib::log_info(FN_NAME + ": Loading SAM mappings from " + filepath +
                    "... ");
 
@@ -88,39 +105,95 @@ AllMappings::load_sam(const std::string& filepath,
   btllib::DataSource data_source(filepath);
 
   std::string token, mapped_seq_id, target_seq_id;
-  unsigned long i = 0;
   while (getline(&line, &n, data_source) > 0) {
-    if (n > 0 && line[0] == '@') {
+    if (line[0] == '@') {
       continue;
     }
     std::stringstream ss(line);
+    Column column = QNAME;
     while (bool(ss >> token)) {
-      switch (i % 3) {
-        case 0:
+      switch (column) {
+        case QNAME:
           mapped_seq_id = std::move(token);
           break;
-        case 2:
+        case RNAME:
           target_seq_id = std::move(token);
           break;
-        case 4: {
-          if (!target_seqs_index.seq_exists(target_seq_id)) {
-            break;
-          }
-          auto it = all_mappings.find(target_seq_id);
-          if (it == all_mappings.end()) {
-            const auto emplacement =
-              all_mappings.emplace(target_seq_id, Mappings());
-            it = emplacement.first;
-          }
-          it->second.emplace_back(mapped_seq_id, 0);
+        default: {
           break;
         }
+      }
+      column = Column(int(column) + 1);
+    }
+    if (target_seqs_index.seq_exists(target_seq_id)) {
+      auto it = all_mappings.find(target_seq_id);
+      if (it == all_mappings.end()) {
+        const auto emplacement =
+          all_mappings.emplace(target_seq_id, Mappings());
+        it = emplacement.first;
+      }
+      it->second.emplace_back(mapped_seq_id, 0);
+    }
+  }
+  btllib::log_info(FN_NAME + ": Done!");
+}
+
+void
+AllMappings::load_paf(const std::string& filepath,
+                      const SeqIndex& target_seqs_index)
+{
+  enum Column
+  {
+    QUERY_ID = 1,
+    QUERY_LEN,
+    QUERY_START,
+    QUERY_END,
+    STRAND,
+    TARGET_ID,
+    TARGET_LEN,
+    TARGET_START,
+    TARGET_END,
+    RESIDUE_MATCHES,
+    ALIGNMENT_LEN,
+    MAPPING_QUAL
+  };
+
+  btllib::log_info(FN_NAME + ": Loading PAF mappings from " + filepath +
+                   "... ");
+
+  size_t n = 2048; // NOLINT
+  char* line = new char[n];
+  btllib::DataSource data_source(filepath);
+
+  std::string token, mapped_seq_id, target_seq_id;
+  while (getline(&line, &n, data_source) > 0) {
+    if (line[0] == '@') {
+      continue;
+    }
+    std::stringstream ss(line);
+    Column column = QUERY_ID;
+    while (bool(ss >> token)) {
+      switch (column) {
+        case QUERY_ID:
+          mapped_seq_id = std::move(token);
+          break;
+        case TARGET_ID:
+          target_seq_id = std::move(token);
+          break;
         default: {
-          btllib::log_error(FN_NAME + ": Invalid switch branch.");
-          std::exit(EXIT_FAILURE); // NOLINT(concurrency-mt-unsafe)
+          break;
         }
       }
-      i++;
+      column = Column(int(column) + 1);
+    }
+    if (target_seqs_index.seq_exists(target_seq_id)) {
+      auto it = all_mappings.find(target_seq_id);
+      if (it == all_mappings.end()) {
+        const auto emplacement =
+          all_mappings.emplace(target_seq_id, Mappings());
+        it = emplacement.first;
+      }
+      it->second.emplace_back(mapped_seq_id, 0);
     }
   }
   btllib::log_info(FN_NAME + ": Done!");
