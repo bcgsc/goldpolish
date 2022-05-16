@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import math
 import subprocess as sp
 from os.path import (
     join,
@@ -37,7 +38,6 @@ BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
 TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
 BATCH_DONE_PIPE = "polishing_done"
-BF_BUILDER_THREADS = 24
 MAX_SIMULTANEOUS_BATCH_PROCESSES = 200
 BATCH_THREADS = 1
 SPAWN_DELAY = 0.05
@@ -48,6 +48,13 @@ GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
 GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
 END_SYMBOL = "x"
+
+
+def get_bf_builder_threads_num(total_threads):
+    assert total_threads >= 1
+    bf_builder_threads_num = math.ceil(total_threads / 2)
+    assert bf_builder_threads_num >= 1
+    return bf_builder_threads_num
 
 
 def get_cli_args():
@@ -69,6 +76,10 @@ def get_cli_args():
     if len(args.k) == 0:
         args.k = [32, 28, 24, 20]
 
+    if args.threads < 2:
+        args.threads = 2
+        btllib.log_warning("Threads number is too low. Setting to 2.")
+
     return args
 
 
@@ -86,13 +97,13 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
     sam_file = None
     paf_file = None
     for f in os.listdir():
-        if f.endswith('.sam') or f.endswith('.bam'):
+        if f.endswith(".sam") or f.endswith(".bam"):
             sam_file = f
-            mappings = ''
+            mappings = ""
             break
-        if f.endswith('.paf'):
+        if f.endswith(".paf"):
             paf_file = f
-            mappings = ''
+            mappings = ""
             break
 
     k_values = " ".join(str(k) for k in k_values)
@@ -144,6 +155,7 @@ def run_bf_builder(
     k_values,
     batch_name_input_pipe,
     batch_target_ids_input_ready_pipe,
+    threads,
 ):
     k_values = [str(k) for k in k_values]
 
@@ -156,7 +168,7 @@ def run_bf_builder(
             polishing_seqs,
             polishing_seqs_index,
             str(kmer_threshold),
-            str(BF_BUILDER_THREADS),
+            str(threads),
         ]
         + k_values,
         cwd=bfs_dir,
@@ -306,6 +318,8 @@ def polish_seqs(
     batch_name_input_pipe = join(bfs_dir, BATCH_NAME_INPUT_PIPE)
     batch_target_ids_input_ready_pipe = join(bfs_dir, BATCH_TARGET_IDS_INPUT_READY_PIPE)
 
+    bf_builder_threads = get_bf_builder_threads_num(threads)
+
     build_targeted_bfs_process = run_bf_builder(
         bfs_dir,
         seqs_to_polish,
@@ -317,10 +331,11 @@ def polish_seqs(
         k_values,
         batch_name_input_pipe,
         batch_target_ids_input_ready_pipe,
+        bf_builder_threads,
     )
 
     create_simultaneous_batch_processes(workspace, prefix)
-    create_threads_in_use(workspace, prefix, BF_BUILDER_THREADS)
+    create_threads_in_use(workspace, prefix, bf_builder_threads)
 
     # Temporary name for the seq(s) to polish
     batch_seqs = "batch.fa"
