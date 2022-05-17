@@ -98,7 +98,7 @@ serve_batch(const SeqIndex& target_seqs_index,
 #pragma omp task firstprivate(mapped_id_idx)                                   \
   shared(bfs, cbfs, mappings, mapped_seqs_index, k_values)
     {
-      const auto mapped_id = mappings[mapped_id_idx].seq_id;
+      const auto mapped_id = mappings.at(mapped_id_idx);
       const auto [seq, seq_len] = mapped_seqs_index.get_seq<1>(mapped_id);
       fill_bfs(seq, seq_len, hash_num, k_values, kmer_threshold, cbfs, bfs);
     }

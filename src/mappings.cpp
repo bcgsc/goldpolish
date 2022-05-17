@@ -10,7 +10,7 @@
 #include <fstream>
 #include <string>
 
-const Mappings AllMappings::EMPTY_MAPPINGS;
+const std::vector<SeqId> AllMappings::EMPTY_MAPPINGS;
 
 AllMappings::AllMappings(const std::string& filepath,
                          const SeqIndex& target_seqs_index,
@@ -29,6 +29,45 @@ AllMappings::AllMappings(const std::string& filepath,
            mx_threshold_min,
            mx_threshold_max,
            target_seqs_index);
+  }
+  all_mx_in_common.clear();
+  all_inserted_mappings.clear();
+}
+
+void
+AllMappings::load_mapping(const std::string& mapped_seq_id,
+                          const std::string& target_seq_id,
+                          const SeqIndex& target_seqs_index,
+                          const unsigned mx)
+{
+  if (target_seqs_index.seq_exists(target_seq_id)) {
+    decltype(all_mappings)::iterator it_all_mappings;
+    decltype(all_inserted_mappings)::iterator it_all_inserted_mappings;
+    decltype(all_mx_in_common)::iterator it_all_mx_in_common;
+
+    it_all_mappings = all_mappings.find(target_seq_id);
+    if (it_all_mappings == all_mappings.end()) {
+      const auto emplacement_all_mappings = all_mappings.emplace(
+        target_seq_id, decltype(all_mappings)::mapped_type());
+      const auto emplacement_all_inserted_mappings =
+        all_inserted_mappings.emplace(
+          target_seq_id, decltype(all_inserted_mappings)::mapped_type());
+      const auto emplacement_all_mx_in_common = all_mx_in_common.emplace(
+        target_seq_id, decltype(all_mx_in_common)::mapped_type());
+      it_all_mappings = emplacement_all_mappings.first;
+      it_all_inserted_mappings = emplacement_all_inserted_mappings.first;
+      it_all_mx_in_common = emplacement_all_mx_in_common.first;
+    } else {
+      it_all_inserted_mappings = all_inserted_mappings.find(target_seq_id);
+      it_all_mx_in_common = all_mx_in_common.find(target_seq_id);
+    }
+
+    if (it_all_inserted_mappings->second.find(mapped_seq_id) ==
+        it_all_inserted_mappings->second.end()) {
+      it_all_mappings->second.emplace_back(mapped_seq_id);
+      it_all_inserted_mappings->second.emplace(mapped_seq_id);
+      it_all_mx_in_common->second.emplace_back(mx);
+    }
   }
 }
 
@@ -53,18 +92,10 @@ AllMappings::load_ntlink(const std::string& filepath,
         target_seq_id = std::move(token);
         break;
       case 2: {
-        if (!target_seqs_index.seq_exists(target_seq_id)) {
-          break;
-        }
-        auto it = all_mappings.find(target_seq_id);
-        if (it == all_mappings.end()) {
-          const auto emplacement =
-            all_mappings.emplace(target_seq_id, Mappings());
-          it = emplacement.first;
-        }
         const auto minimizers = std::stoul(token);
         if (minimizers >= mx_threshold_min) {
-          it->second.emplace_back(mapped_seq_id, minimizers);
+          load_mapping(
+            mapped_seq_id, target_seq_id, target_seqs_index, minimizers);
         }
         break;
       }
@@ -125,15 +156,7 @@ AllMappings::load_sam(const std::string& filepath,
       }
       column = Column(int(column) + 1);
     }
-    if (target_seqs_index.seq_exists(target_seq_id)) {
-      auto it = all_mappings.find(target_seq_id);
-      if (it == all_mappings.end()) {
-        const auto emplacement =
-          all_mappings.emplace(target_seq_id, Mappings());
-        it = emplacement.first;
-      }
-      it->second.emplace_back(mapped_seq_id, 0);
-    }
+    load_mapping(mapped_seq_id, target_seq_id, target_seqs_index, 0);
   }
   btllib::log_info(FN_NAME + ": Done!");
 }
@@ -186,28 +209,21 @@ AllMappings::load_paf(const std::string& filepath,
       }
       column = Column(int(column) + 1);
     }
-    if (target_seqs_index.seq_exists(target_seq_id)) {
-      auto it = all_mappings.find(target_seq_id);
-      if (it == all_mappings.end()) {
-        const auto emplacement =
-          all_mappings.emplace(target_seq_id, Mappings());
-        it = emplacement.first;
-      }
-      it->second.emplace_back(mapped_seq_id, 0);
-    }
+    load_mapping(mapped_seq_id, target_seq_id, target_seqs_index, 0);
   }
   btllib::log_info(FN_NAME + ": Done!");
 }
 
 unsigned
-mapped_seqs_for_threshold(const Mappings& mappings, const unsigned mx_threshold)
+mapped_seqs_for_threshold(const std::vector<unsigned>& mx_in_common,
+                          const unsigned mx_threshold)
 {
   unsigned mapped_seq_num = 0;
-  std::for_each(mappings.begin(), mappings.end(), [&](const Mapping& mapping) {
-    if (mapping.mx_in_common >= mx_threshold) {
+  for (const auto mx : mx_in_common) {
+    if (mx >= mx_threshold) {
       mapped_seq_num++;
     }
-  });
+  }
   return mapped_seq_num;
 }
 
@@ -232,6 +248,7 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
     if (mappings.empty()) {
       continue;
     }
+    const auto& mx_in_common = all_mx_in_common.at(target_seq_id);
 
     if (!target_seqs_index.seq_exists(target_seq_id)) {
       continue;
@@ -247,7 +264,7 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
 
     int updated_mx_threshold_max = int(mx_threshold_max);
     int updated_mx_threshold_max_mapped_seqs =
-      int(mapped_seqs_for_threshold(mappings, updated_mx_threshold_max));
+      int(mapped_seqs_for_threshold(mx_in_common, updated_mx_threshold_max));
 
     int mx_threshold = -1;
     if (updated_mx_threshold_min_mapped_seqs <= max_mapped_seqs) {
@@ -259,7 +276,7 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
         const int mx_threshold_mid =
           (updated_mx_threshold_max + updated_mx_threshold_min) / 2;
         const int mx_threshold_mid_mapped_seqs =
-          int(mapped_seqs_for_threshold(mappings, mx_threshold_mid));
+          int(mapped_seqs_for_threshold(mx_in_common, mx_threshold_mid));
         if (mx_threshold_mid_mapped_seqs > max_mapped_seqs) {
           updated_mx_threshold_min = mx_threshold_mid;
           updated_mx_threshold_min_mapped_seqs = mx_threshold_mid_mapped_seqs;
@@ -291,19 +308,18 @@ AllMappings::filter(const double max_mapped_seqs_per_target_10kbp,
     btllib::check_error(mx_threshold > int(mx_threshold_max),
                         FN_NAME + ": mx_threshold > mx_threshold_max.");
 
-    Mappings new_mappings;
-    std::for_each(
-      mappings.begin(), mappings.end(), [&](const Mapping& mapping) {
-        if (int(mapping.mx_in_common) >= mx_threshold) {
-          new_mappings.push_back(mapping);
-        }
-      });
+    std::vector<SeqId> new_mappings;
+    for (size_t i = 0; i < mappings.size(); i++) {
+      if (int(mx_in_common[i]) >= mx_threshold) {
+        new_mappings.push_back(mappings[i]);
+      }
+    }
     target_mappings.second = new_mappings;
   }
   btllib::log_info(FN_NAME + ": Done!");
 }
 
-const Mappings&
+const std::vector<SeqId>&
 AllMappings::get_mappings(const std::string& id) const
 {
   const auto it = all_mappings.find(id);

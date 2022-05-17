@@ -3,21 +3,11 @@
 
 #include "seqindex.hpp"
 
+#include <set>
 #include <string>
 #include <unordered_map>
 
-struct Mapping
-{
-  std::string seq_id;
-  unsigned mx_in_common;
-
-  Mapping(std::string seq_id, const unsigned mx_in_common)
-    : seq_id(std::move(seq_id))
-    , mx_in_common(mx_in_common)
-  {}
-};
-
-using Mappings = std::vector<Mapping>;
+using SeqId = std::string;
 
 class AllMappings
 {
@@ -32,7 +22,7 @@ public:
   AllMappings(const AllMappings&) = delete;
   AllMappings& operator=(const AllMappings&) = delete;
 
-  const Mappings& get_mappings(const std::string& id) const;
+  const std::vector<SeqId>& get_mappings(const std::string& id) const;
 
 private:
   void load_ntlink(const std::string& filepath,
@@ -46,8 +36,16 @@ private:
               unsigned mx_threshold_max,
               const SeqIndex& target_seqs_index);
 
-  std::unordered_map<std::string, Mappings> all_mappings;
-  static const Mappings EMPTY_MAPPINGS;
+  void load_mapping(const std::string& mapped_seq_id,
+                    const std::string& target_seq_id,
+                    const SeqIndex& target_seqs_index,
+                    unsigned mx = 0);
+
+  std::unordered_map<SeqId, std::vector<SeqId>> all_mappings;
+  std::unordered_map<SeqId, std::set<SeqId>> all_inserted_mappings;
+  std::unordered_map<SeqId, std::vector<unsigned>> all_mx_in_common;
+
+  static const std::vector<SeqId> EMPTY_MAPPINGS;
 };
 
 #endif
