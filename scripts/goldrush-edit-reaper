@@ -34,7 +34,9 @@ def get_cli_args():
 
 
 def write_batch_results(polished_seqs, writer):
-    assert getsize(polished_seqs) > 0
+    btllib.check_error(
+        getsize(polished_seqs) <= 0, f"Polished seqs file is empty: {polished_seqs}"
+    )
     with btllib.SeqReader(polished_seqs, btllib.SeqReaderFlag.LONG_MODE) as reader:
         for record in reader:
             writer.write(record.id, record.comment, record.seq)

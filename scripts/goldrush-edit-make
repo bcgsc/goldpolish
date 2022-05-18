@@ -28,41 +28,30 @@ export REPORTTIME=1
 export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
 endif
 
-# Record run time and memory usage in a file using GNU time
-ifeq ($(time),true)
-ifneq ($(shell command -v gtime),)
-log_time=command gtime -v -o $@.time
-else
-log_time=command time -v -o $@.time
-endif
-else
-log_time=
-endif
-
 .PHONY: clean
 .DELETE_ON_ERROR:
 .SECONDARY:
 
 %.upper.fa: %.fa
-	$(log_time) goldrush-edit-to-upper $< $@
+	goldrush-edit-to-upper $< $@
 
 %.index: %
-	$(log_time) goldrush-edit-index $< $@
+	goldrush-edit-index $< $@
 
 $(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
-	$(log_time) ntLink target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True
+	ntLink target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True
 
 $(seqs_to_polish_notdir).mapping.tsv: $(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv
-	$(log_time) awk '{ print $$1" "$$2" "$$3 }' $< >$@
+	awk '{ print $$1" "$$2" "$$3 }' $< >$@
 
 %.ntedited.fa: %.fa $(bfs)
-	$(log_time) goldrush-edit-ntedit $(basename $<) "$(bfs)" "$(K)" $(NTEDIT_X) $(NTEDIT_Y) $(t) $@
+	goldrush-edit-ntedit $(basename $<) "$(bfs)" "$(K)" $(NTEDIT_X) $(NTEDIT_Y) $(t) $@
 
 %.prepd.fa: %.fa
-	$(log_time) goldrush-edit-mask -s -k$(firstword $(K)) $< >$@
+	goldrush-edit-mask -s -k$(firstword $(K)) $< >$@
 
 %.sealer_scaffold.fa: %.fa $(bfs)
-	$(log_time) abyss-sealer -v -S $< \
+	abyss-sealer -v -S $< \
 	-o $*.sealer -L$(firstword $(K)) -j$(t) -P$(SEALER_P) -B$(SEALER_B) --lower \
 	$(foreach k,$(K),-k$(k)) \
 	$(foreach bf,$(bfs),--input-bloom=$(bf))

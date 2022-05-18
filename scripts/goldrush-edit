@@ -89,6 +89,8 @@ def autoclean(workspace, prefix):
 
 
 def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_values):
+    btllib.log_info(f"Building indexes and mappings...")
+
     # Indexes and mapping filenames
     polishing_seqs_index = f"{basename(polishing_seqs_path)}.index"
     seqs_to_polish_index = f"{basename(seqs_to_polish_path)}.index"
@@ -140,6 +142,8 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
         mappings = abspath(paf_file)
     else:
         mappings = abspath(mappings)
+
+    btllib.log_info("Indexes and mappings built.")
 
     return polishing_seqs_index, seqs_to_polish_index, mappings
 
