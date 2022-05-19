@@ -28,6 +28,13 @@ export REPORTTIME=1
 export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
 endif
 
+# Record run time and memory usage in a file using GNU time
+ifeq ($(time),true)
+log_time=command time -v -o $@.time
+else
+log_time=
+endif
+
 .PHONY: clean
 .DELETE_ON_ERROR:
 .SECONDARY:
@@ -39,7 +46,7 @@ endif
 	goldrush-edit-index $< $@
 
 $(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
-	ntLink target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True
+	$(log_time) ntLink target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True
 
 $(seqs_to_polish_notdir).mapping.tsv: $(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv
 	awk '{ print $$1" "$$2" "$$3 }' $< >$@

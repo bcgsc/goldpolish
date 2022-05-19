@@ -52,7 +52,7 @@ END_SYMBOL = "x"
 
 def get_bf_builder_threads_num(total_threads):
     assert total_threads >= 1
-    bf_builder_threads_num = math.ceil(total_threads / 2.7)
+    bf_builder_threads_num = math.ceil(total_threads / 2.5)
     assert bf_builder_threads_num >= 1
     return bf_builder_threads_num
 
@@ -88,7 +88,9 @@ def autoclean(workspace, prefix):
     watch_process(process)
 
 
-def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_values):
+def build_indexes_and_mappings(
+    polishing_seqs_path, seqs_to_polish_path, k_values, verbose
+):
     btllib.log_info(f"Building indexes and mappings...")
 
     # Indexes and mapping filenames
@@ -121,6 +123,7 @@ def build_indexes_and_mappings(polishing_seqs_path, seqs_to_polish_path, k_value
         {seqs_to_polish_index} \
         {mappings} \
         {polishing_seqs_index} \
+        {"time=true" if verbose else ""}
     """
             ],
             shell=True,
@@ -312,7 +315,7 @@ def polish_seqs(
 
     # Build indexes and mappings
     polishing_seqs_index, seqs_to_polish_index, mappings = build_indexes_and_mappings(
-        polishing_seqs, seqs_to_polish, k_values
+        polishing_seqs, seqs_to_polish, k_values, verbose
     )
 
     # Where to build the Bloom filters
