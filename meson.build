@@ -41,3 +41,5 @@ deps = [ threads_dep, openmp_dep, btllib_dep ]
 
 subdir('src')
 subdir('scripts')
+subproject('ntedit')
+subproject('sealer')

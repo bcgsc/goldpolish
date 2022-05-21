@@ -24,7 +24,7 @@ for i in "${!k[@]}"; do
   else
     input=${prev}
   fi
-  ntedit -f ${input}.fa -r ${bfs[$i]} -d5 -i5 -m1 -X$X -Y$Y -b ${input}.k${k[$i]}.X$X.Y$Y -t$t -a1
+  ntedit-gr -f ${input}.fa -r ${bfs[$i]} -d5 -i5 -m1 -X$X -Y$Y -b ${input}.k${k[$i]}.X$X.Y$Y -t$t -a1
   prev=${input}.k${k[$i]}.X${X}.Y${Y}_edited
 done
 
@@ -34,7 +34,7 @@ size_diff=$(echo "scale=4; $output_size / $input_size" | bc)
 skip=$(echo "$size_diff < 0.75" | bc -l)
 if [[ $skip -eq 1 ]]; then
   ln -sf ${seqs_basename}.fa ${outfile}
-  echo "run_ntedit.sh: skipped ${seqs_basename}.fa"
+  echo "goldrush-edit-ntedit: skipped ${seqs_basename}.fa"
 else
   ln -sf ${prev}.fa ${outfile}
 fi

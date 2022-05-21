@@ -84,11 +84,8 @@ serve_batch(const SeqIndex& target_seqs_index,
       continue;
     }
     const auto mappings_num = mappings.size();
-    const auto mappings_num_adjusted = std::min(
-      mappings_num,
-      decltype(mappings_num)(
-        (double(target_seq_len) * subsample_max_mapped_seqs_per_target_10kbp) /
-        10'000.0));
+    decltype(mappings_num) _mappings_num_adjusted = double(target_seq_len) * subsample_max_mapped_seqs_per_target_10kbp / 10'000.0;
+    const auto mappings_num_adjusted = std::min(mappings_num, _mappings_num_adjusted);
 
     const auto random_indices =
       get_random_indices(mappings_num, mappings_num_adjusted);

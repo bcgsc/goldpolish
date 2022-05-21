@@ -42,7 +42,7 @@ get_random_indices(const size_t total_size, const size_t count)
   std::iota(all_indices.begin(), all_indices.end(), 0);
   std::shuffle(all_indices.begin(), all_indices.end(), rng);
 
-  using advance_type = const typename std::iterator_traits<
+  using advance_type = typename std::iterator_traits<
     decltype(all_indices.begin())>::difference_type;
 
   decltype(all_indices) indices(
