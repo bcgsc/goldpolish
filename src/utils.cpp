@@ -102,16 +102,22 @@ fill_bfs(const char* seq,
          std::vector<std::unique_ptr<btllib::KmerCountingBloomFilter8>>& cbfs,
          std::vector<std::unique_ptr<btllib::KmerBloomFilter>>& bfs)
 {
+  btllib::check_error(kmer_threshold < 4,
+                      FN_NAME + ": kmer_threshold must be "
+                                "greater than or equal to 4.");
+  unsigned adjusted_kmer_threshold = kmer_threshold - 2;
   for (size_t i = 0; i < k_values.size(); i++) {
     const auto k = k_values[i];
     const auto& cbf = cbfs[i];
     const auto& bf = bfs[i];
     btllib::NtHash nthash(seq, seq_len, hash_num, k);
     while (nthash.roll()) {
-      if (cbf->insert_thresh_contains(nthash.hashes(), kmer_threshold) >=
-          kmer_threshold) {
+      if (cbf->insert_thresh_contains(nthash.hashes(),
+                                      adjusted_kmer_threshold) >=
+          adjusted_kmer_threshold) {
         bf->insert(nthash.hashes());
       }
     }
+    adjusted_kmer_threshold++;
   }
 }
