@@ -63,7 +63,6 @@ def get_cli_args():
     parser.add_argument("polishing_seqs")
     parser.add_argument("output_seqs")
     parser.add_argument("-k", action="append", default=[])
-    parser.add_argument("-c", "--kmer-threshold", type=int, default=5)
     parser.add_argument("-b", "--bsize", default=1, type=int, help="Batch size.")
     parser.add_argument("-m", "--shared-mem", default="/dev/shm")
     parser.add_argument("-t", "--threads", type=int, default=48)
@@ -158,7 +157,6 @@ def run_bf_builder(
     mappings,
     polishing_seqs,
     polishing_seqs_index,
-    kmer_threshold,
     k_values,
     batch_name_input_pipe,
     batch_target_ids_input_ready_pipe,
@@ -174,7 +172,6 @@ def run_bf_builder(
             mappings,
             polishing_seqs,
             polishing_seqs_index,
-            str(kmer_threshold),
             str(threads),
         ]
         + k_values,
@@ -303,7 +300,6 @@ def polish_seqs(
     polishing_seqs,
     output_seqs,
     k_values,
-    kmer_threshold,
     batch_size,
     workspace,
     threads,
@@ -334,7 +330,6 @@ def polish_seqs(
         mappings,
         polishing_seqs,
         polishing_seqs_index,
-        kmer_threshold,
         k_values,
         batch_name_input_pipe,
         batch_target_ids_input_ready_pipe,
@@ -431,7 +426,6 @@ if __name__ == "__main__":
         args.polishing_seqs,
         args.output_seqs,
         args.k,
-        args.kmer_threshold,
         args.bsize,
         workspace,
         args.threads,

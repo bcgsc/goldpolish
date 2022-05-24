@@ -8,6 +8,7 @@
 #include "btllib/util.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -16,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -42,13 +44,22 @@ static const std::string SEPARATOR = "-";
 static const std::string BF_EXTENSION = ".bf";
 static const std::string END_SYMBOL = "x";
 
+int
+mappings_bases_to_kmer_threshold(const unsigned long mappings_bases)
+{
+  static const double a = 4.66943;
+  static const double b = 2.11391e-07;
+  static const int max_kmer_threshold = 13;
+  const int kmer_threshold = int(std::round(a + double(mappings_bases) * b));
+  return std::min(kmer_threshold, max_kmer_threshold);
+}
+
 void
 serve_batch(const SeqIndex& target_seqs_index,
             const SeqIndex& mapped_seqs_index,
             const AllMappings& all_mappings,
             const size_t cbf_bytes,
             const size_t bf_bytes,
-            const unsigned kmer_threshold,
             const std::string& batch_name,
             const std::string& target_ids_input_pipe,
             const std::string& bfs_ready_pipe,
@@ -84,11 +95,25 @@ serve_batch(const SeqIndex& target_seqs_index,
       continue;
     }
     const auto mappings_num = mappings.size();
-    decltype(mappings_num) _mappings_num_adjusted = double(target_seq_len) * subsample_max_mapped_seqs_per_target_10kbp / 10'000.0;
-    const auto mappings_num_adjusted = std::min(mappings_num, _mappings_num_adjusted);
+    const auto mappings_num_max =
+      std::remove_const<decltype(mappings_num)>::type(
+        double(target_seq_len) * subsample_max_mapped_seqs_per_target_10kbp /
+        10'000.0);
+    const auto mappings_num_adjusted = std::min(mappings_num, mappings_num_max);
 
     const auto random_indices =
       get_random_indices(mappings_num, mappings_num_adjusted);
+
+    unsigned long mappings_bases = 0;
+    for (const auto mapped_id_idx : random_indices) {
+      const auto mapped_id = mappings.at(mapped_id_idx);
+      const auto mapped_seq_len = mapped_seqs_index.get_seq_len(mapped_id);
+      mappings_bases += mapped_seq_len;
+    }
+    const auto kmer_threshold =
+      mappings_bases_to_kmer_threshold(mappings_bases);
+    btllib::check_error(kmer_threshold <= 0,
+                        FN_NAME + ": k-mer threshold must be >0.");
 
     // NOLINTNEXTLINE(google-readability-braces-around-statements,hicpp-braces-around-statements,readability-braces-around-statements)
     for (const auto mapped_id_idx : random_indices)
@@ -119,7 +144,6 @@ process_batch_name(const SeqIndex& target_seqs_index,
                    const AllMappings& all_mappings,
                    const size_t cbf_bytes,
                    const size_t bf_bytes,
-                   const unsigned kmer_threshold,
                    const std::string& batch_name_input_pipe,
                    const std::string& batch_target_ids_input_ready_pipe,
                    const std::string& target_ids_input_pipe,
@@ -152,7 +176,6 @@ process_batch_name(const SeqIndex& target_seqs_index,
               all_mappings,
               cbf_bytes,
               bf_bytes,
-              kmer_threshold,
               batch_name,
               batch_target_ids_input_pipe,
               batch_bfs_ready_pipe,
@@ -170,7 +193,6 @@ serve(const SeqIndex& target_seqs_index,
       const AllMappings& all_mappings,
       const size_t cbf_bytes,
       const size_t bf_bytes,
-      const unsigned kmer_threshold,
       const std::string& batch_name_input_pipe,
       const std::string& batch_target_ids_input_ready_pipe,
       const std::string& target_ids_input_pipe,
@@ -179,9 +201,6 @@ serve(const SeqIndex& target_seqs_index,
       const std::vector<unsigned>& k_values, // NOLINT
       const double subsample_max_mapped_seqs_per_target_10kbp)
 {
-  btllib::check_error(kmer_threshold == 0,
-                      FN_NAME + ": k-mer threshold must be >0.");
-
   make_pipe(batch_name_input_pipe);
   make_pipe(batch_target_ids_input_ready_pipe);
 
@@ -201,7 +220,6 @@ serve(const SeqIndex& target_seqs_index,
                             all_mappings,
                             cbf_bytes,
                             bf_bytes,
-                            kmer_threshold,
                             batch_name_input_pipe,
                             batch_target_ids_input_ready_pipe,
                             target_ids_input_pipe,
@@ -234,7 +252,6 @@ main(int argc, char** argv)
   auto* const mappings_filepath = argv[arg++];
   auto* const mapped_seqs_filepath = argv[arg++];
   auto* const mapped_seqs_index_filepath = argv[arg++];
-  const auto kmer_threshold = std::stoi(argv[arg++]);
   const auto threads = std::stoi(argv[arg++]);
   while (arg < argc) {
     k_values.push_back(std::stoi(argv[arg++]));
@@ -261,7 +278,6 @@ main(int argc, char** argv)
         all_mappings,
         cbf_bytes,
         bf_bytes,
-        kmer_threshold,
         BATCH_NAME_INPUT_PIPE,
         BATCH_TARGET_IDS_INPUT_READY_PIPE,
         TARGET_IDS_INPUT_PIPE,
