@@ -25,7 +25,7 @@ conda install -c bioconda btllib
 
 To build GoldRush-Edit and install it at `$GOLDRUSH_EDIT_PREFIX`, run the following commands from within the `goldrush-edit` directory:
 ```
-meson setup build --buildtype=release --prefix=$GOLDRUSH_EDIT_PREFIX
+meson setup build --buildtype release --prefix $GOLDRUSH_EDIT_PREFIX
 cd build
 ninja install
 ```
