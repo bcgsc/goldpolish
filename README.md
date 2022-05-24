@@ -4,13 +4,30 @@ GoldRush-Edit is an efficient genome polishing tool that uses long reads. [ntEdi
 
 ## Dependencies
 
-- GNU Make
-- Python 3
-- [btllib](https://github.com/bcgsc/btllib) v1.4.3+
+- Build
+  * GCC 7+ or Clang 8+ (with OpenMP support)
+  * [meson](https://mesonbuild.com/)
+  * [ninja](https://ninja-build.org/)
+  * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
 
-btllib can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
+- Run
+  * GNU Make
+  * Python 3
+  * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
+
+meson, ninja, and btllib can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
-conda install -c bioconda btllib 
+conda install -c conda-forge meson ninja 
+conda install -c bioconda btllib
+```
+
+## Installation
+
+To build GoldRush-Edit and install it at `$GOLDRUSH_EDIT_PREFIX`, run the following commands from within the `goldrush-edit` directory:
+```
+meson setup build --buildtype=release --prefix=$GOLDRUSH_EDIT_PREFIX
+cd build
+ninja install
 ```
 
 ## Usage
