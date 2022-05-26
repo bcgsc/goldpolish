@@ -16,10 +16,10 @@ GoldRush-Edit is an efficient draft genome assembly polishing tool that uses lon
   * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
   * [ntLink](https://github.com/bcgsc/ntlink) v1.3.0+
 
-meson, ninja, and btllib can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
+meson, ninja, btllib, and ntLink can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
 conda install -c conda-forge meson ninja 
-conda install -c bioconda btllib
+conda install -c bioconda btllib ntlink
 ```
 
 ## Installation
