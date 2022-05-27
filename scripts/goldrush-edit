@@ -18,6 +18,7 @@ from os.path import (
 )
 import shutil
 import time
+from enum import Enum, auto
 
 import btllib
 
@@ -50,6 +51,12 @@ GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
 END_SYMBOL = "x"
 
 
+class MappingTool(Enum):
+    NTLINK = auto()
+    MINIMAP2 = auto()
+    MAPPINGS_PROVIDED = auto()
+
+
 def get_bf_builder_threads_num(total_threads):
     assert total_threads >= 1
     bf_builder_threads_num = math.ceil(total_threads / 2.5)
@@ -58,7 +65,9 @@ def get_bf_builder_threads_num(total_threads):
 
 
 def get_cli_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument("seqs_to_polish")
     parser.add_argument("polishing_seqs")
     parser.add_argument("output_seqs")
@@ -67,6 +76,26 @@ def get_cli_args():
     parser.add_argument("-m", "--shared-mem", default="/dev/shm")
     parser.add_argument("-t", "--threads", type=int, default=48)
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-x", "--mx-max-reads-per-10kbp", type=float, default=150.0)
+    parser.add_argument(
+        "-s", "--subsample-max-reads-per-10kbp", type=float, default=120.0
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--ntlink",
+        action="store_true",
+        help="Run ntLink to generate read mappings (default).",
+    )
+    group.add_argument(
+        "--minimap2",
+        action="store_true",
+        help="Run minimap2 to generate read mappings.",
+    )
+    group.add_argument(
+        "--mappings",
+        default="",
+        help="Use provided pre-generated mappings. Accepted formats are PAF, SAM, and *.verbose_mapping.tsv from ntLink.",
+    )
 
     args = parser.parse_args()
     args.seqs_to_polish = abspath(args.seqs_to_polish)
@@ -88,26 +117,34 @@ def autoclean(workspace, prefix):
 
 
 def build_indexes_and_mappings(
-    polishing_seqs_path, seqs_to_polish_path, k_values, verbose
+    polishing_seqs_path, seqs_to_polish_path, k_values, mapping_tool, mappings, verbose
 ):
     btllib.log_info(f"Building indexes and mappings...")
 
     # Indexes and mapping filenames
     polishing_seqs_index = f"{basename(polishing_seqs_path)}.index"
     seqs_to_polish_index = f"{basename(seqs_to_polish_path)}.index"
-    mappings = f"{basename(seqs_to_polish_path)}.mapping.tsv"
 
-    sam_file = None
-    paf_file = None
-    for f in os.listdir():
-        if f.endswith(".sam") or f.endswith(".bam"):
-            sam_file = f
-            mappings = ""
-            break
-        if f.endswith(".paf"):
-            paf_file = f
-            mappings = ""
-            break
+    if mapping_tool == MappingTool.NTLINK:
+        mappings_to_build = (
+            f"{basename(seqs_to_polish_path)}.k32.w100.z1000.mapping.tsv"
+        )
+        mappings = mappings_to_build
+    elif mapping_tool == MappingTool.MINIMAP2:
+        mappings_to_build = (
+            f"{basename(seqs_to_polish_path)}.{basename(polishing_seqs_path)}.paf"
+        )
+        mappings = mappings_to_build
+    elif mapping_tool == MappingTool.MAPPINGS_PROVIDED:
+        if mappings.endswith(".verbose_mapping.tsv"):
+            if not isfile(basename(mappings)):
+                os.symlink(mappings, basename(mappings))
+            tokens = mappings.split(".")
+            params = ".".join(tokens[(-5):(-2)])
+            mappings_to_build = f"{basename(seqs_to_polish_path)}.{params}.mapping.tsv"
+            mappings = mappings_to_build
+        else:
+            mappings_to_build = ""
 
     k_values = " ".join(str(k) for k in k_values)
 
@@ -120,7 +157,7 @@ def build_indexes_and_mappings(
         seqs_to_polish={seqs_to_polish_path} \
         K='{k_values}' \
         {seqs_to_polish_index} \
-        {mappings} \
+        {mappings_to_build} \
         {polishing_seqs_index} \
         {"time=true" if verbose else ""}
     """
@@ -137,13 +174,7 @@ def build_indexes_and_mappings(
 
     polishing_seqs_index = abspath(polishing_seqs_index)
     seqs_to_polish_index = abspath(seqs_to_polish_index)
-
-    if sam_file != None:
-        mappings = abspath(sam_file)
-    elif paf_file != None:
-        mappings = abspath(paf_file)
-    else:
-        mappings = abspath(mappings)
+    mappings = abspath(mappings)
 
     btllib.log_info("Indexes and mappings built.")
 
@@ -160,6 +191,8 @@ def run_bf_builder(
     k_values,
     batch_name_input_pipe,
     batch_target_ids_input_ready_pipe,
+    mx_max_reads_per_10kbp,
+    subsample_max_reads_per_10kbp,
     threads,
 ):
     k_values = [str(k) for k in k_values]
@@ -172,6 +205,8 @@ def run_bf_builder(
             mappings,
             polishing_seqs,
             polishing_seqs_index,
+            str(mx_max_reads_per_10kbp),
+            str(subsample_max_reads_per_10kbp),
             str(threads),
         ]
         + k_values,
@@ -302,7 +337,11 @@ def polish_seqs(
     k_values,
     batch_size,
     workspace,
+    mx_max_reads_per_10kbp,
+    subsample_max_reads_per_10kbp,
     threads,
+    mapping_tool,
+    mappings,
     verbose,
 ):
     prefix = get_random_name()
@@ -311,7 +350,7 @@ def polish_seqs(
 
     # Build indexes and mappings
     polishing_seqs_index, seqs_to_polish_index, mappings = build_indexes_and_mappings(
-        polishing_seqs, seqs_to_polish, k_values, verbose
+        polishing_seqs, seqs_to_polish, k_values, mapping_tool, mappings, verbose
     )
 
     # Where to build the Bloom filters
@@ -333,6 +372,8 @@ def polish_seqs(
         k_values,
         batch_name_input_pipe,
         batch_target_ids_input_ready_pipe,
+        mx_max_reads_per_10kbp,
+        subsample_max_reads_per_10kbp,
         bf_builder_threads,
     )
 
@@ -421,6 +462,12 @@ if __name__ == "__main__":
             f"GoldRush-Edit: {args.shared_mem} not present. Polishing might run slower."
         )
 
+    mapping_tool = MappingTool.NTLINK
+    if args.minimap2:
+        mapping_tool = MappingTool.MINIMAP2
+    elif len(args.mappings) > 0:
+        mapping_tool = MappingTool.MAPPINGS_PROVIDED
+
     polish_seqs(
         args.seqs_to_polish,
         args.polishing_seqs,
@@ -428,6 +475,10 @@ if __name__ == "__main__":
         args.k,
         args.bsize,
         workspace,
+        args.mx_max_reads_per_10kbp,
+        args.subsample_max_reads_per_10kbp,
         args.threads,
+        mapping_tool,
+        args.mappings,
         args.verbose,
     )

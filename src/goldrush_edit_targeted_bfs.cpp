@@ -31,8 +31,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static const double MX_MAX_MAPPED_SEQS_PER_TARGET_10KBP = 150.0;
-static const double SUBSAMPLE_MAX_MAPPED_SEQS_PER_TARGET_10KBP = 120.0;
 static const unsigned MX_THRESHOLD_MIN = 1;
 static const unsigned MX_THRESHOLD_MAX = 30;
 static const std::string BATCH_NAME_INPUT_PIPE = "batch_name_input";
@@ -252,6 +250,8 @@ main(int argc, char** argv)
   auto* const mappings_filepath = argv[arg++];
   auto* const mapped_seqs_filepath = argv[arg++];
   auto* const mapped_seqs_index_filepath = argv[arg++];
+  const auto mx_max_mapped_seqs_per_target_10kbp = std::stod(argv[arg++]);
+  const auto subsample_max_mapped_seqs_per_target_10kbp = std::stod(argv[arg++]);
   const auto threads = std::stoi(argv[arg++]);
   while (arg < argc) {
     k_values.push_back(std::stoi(argv[arg++]));
@@ -271,7 +271,7 @@ main(int argc, char** argv)
                            target_seqs_index,
                            MX_THRESHOLD_MIN,
                            MX_THRESHOLD_MAX,
-                           MX_MAX_MAPPED_SEQS_PER_TARGET_10KBP);
+                           mx_max_mapped_seqs_per_target_10kbp);
 
   serve(target_seqs_index,
         mapped_seqs_index,
@@ -284,7 +284,7 @@ main(int argc, char** argv)
         BFS_READY_PIPE,
         hash_num,
         k_values,
-        SUBSAMPLE_MAX_MAPPED_SEQS_PER_TARGET_10KBP);
+        subsample_max_mapped_seqs_per_target_10kbp);
 
   return 0;
 }
