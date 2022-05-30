@@ -59,7 +59,7 @@ class MappingTool(Enum):
 
 def get_bf_builder_threads_num(total_threads):
     assert total_threads >= 1
-    bf_builder_threads_num = math.ceil(total_threads / 2.5)
+    bf_builder_threads_num = math.ceil(total_threads / 1.8)
     assert bf_builder_threads_num >= 1
     return bf_builder_threads_num
 
