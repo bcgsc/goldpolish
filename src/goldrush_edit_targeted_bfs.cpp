@@ -114,8 +114,7 @@ serve_batch(const SeqIndex& target_seqs_index,
                         FN_NAME + ": k-mer threshold must be >0.");
 
     // NOLINTNEXTLINE(google-readability-braces-around-statements,hicpp-braces-around-statements,readability-braces-around-statements)
-    for (const auto mapped_id_idx : random_indices)
-    {
+    for (const auto mapped_id_idx : random_indices) {
       const auto mapped_id = mappings.at(mapped_id_idx);
       const auto [seq, seq_len] = mapped_seqs_index.get_seq<1>(mapped_id);
       fill_bfs(seq, seq_len, hash_num, k_values, kmer_threshold, cbfs, bfs);
@@ -248,7 +247,8 @@ main(int argc, char** argv)
   auto* const mapped_seqs_filepath = argv[arg++];
   auto* const mapped_seqs_index_filepath = argv[arg++];
   const auto mx_max_mapped_seqs_per_target_10kbp = std::stod(argv[arg++]);
-  const auto subsample_max_mapped_seqs_per_target_10kbp = std::stod(argv[arg++]);
+  const auto subsample_max_mapped_seqs_per_target_10kbp =
+    std::stod(argv[arg++]);
   const auto threads = std::stoi(argv[arg++]);
   while (arg < argc) {
     k_values.push_back(std::stoi(argv[arg++]));
