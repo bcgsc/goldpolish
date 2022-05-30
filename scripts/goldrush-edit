@@ -117,7 +117,13 @@ def autoclean(workspace, prefix):
 
 
 def build_indexes_and_mappings(
-    polishing_seqs_path, seqs_to_polish_path, k_values, mapping_tool, mappings, verbose
+    polishing_seqs_path,
+    seqs_to_polish_path,
+    k_values,
+    mapping_tool,
+    mappings,
+    threads,
+    verbose,
 ):
     btllib.log_info(f"Building indexes and mappings...")
 
@@ -153,6 +159,7 @@ def build_indexes_and_mappings(
             [
                 f""" \
         {GOLDRUSH_EDIT_MAKE} \
+        t={threads} \
         polishing_seqs={polishing_seqs_path} \
         seqs_to_polish={seqs_to_polish_path} \
         K='{k_values}' \
@@ -350,7 +357,13 @@ def polish_seqs(
 
     # Build indexes and mappings
     polishing_seqs_index, seqs_to_polish_index, mappings = build_indexes_and_mappings(
-        polishing_seqs, seqs_to_polish, k_values, mapping_tool, mappings, verbose
+        polishing_seqs,
+        seqs_to_polish,
+        k_values,
+        mapping_tool,
+        mappings,
+        threads,
+        verbose,
     )
 
     # Where to build the Bloom filters
