@@ -186,8 +186,14 @@ def build_indexes_and_mappings(
             params = ".".join(tokens[(-5):(-2)])
             mappings_to_build = f"{basename(seqs_to_polish_path)}.{params}.mapping.tsv"
             mappings = mappings_to_build
+            if subsample_max_reads_per_10kbp == -1:
+                subsample_max_reads_per_10kbp = NTLINK_SUBSAMPLE_MAX_READS_PER_10KBP
         else:
             mappings_to_build = ""
+            if subsample_max_reads_per_10kbp == -1:
+                subsample_max_reads_per_10kbp = MINIMAP2_SUBSAMPLE_MAX_READS_PER_10KBP
+    else:
+        raise ValueError(f"Unknown mapping tool: {mapping_tool}")
 
     k_values = " ".join(str(k) for k in k_values)
 
@@ -407,6 +413,9 @@ def polish_seqs(
         subsample_max_reads_per_10kbp,
         threads,
         verbose,
+    )
+    btllib.check_error(
+        subsample_max_reads_per_10kbp <= 0, "Subsample max reads per 10kbp is <=0"
     )
 
     # Where to build the Bloom filters
