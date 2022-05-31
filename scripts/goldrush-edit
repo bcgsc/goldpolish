@@ -110,7 +110,7 @@ def get_cli_args():
         "--subsample-max-reads-per-10kbp",
         type=float,
         default=-1,
-        help="Random subsampling of mapped reads. For ntLink mappings, this is done after common minimizer subsampling. For minimap2 mappings, only this subsampling is done. By default, 40 if using minimap2 mappings and 100 if using ntLink mappings.",
+        help=f"Random subsampling of mapped reads. For ntLink mappings, this is done after common minimizer subsampling. For minimap2 mappings, only this subsampling is done. By default, {MINIMAP2_SUBSAMPLE_MAX_READS_PER_10KBP} if using minimap2 mappings and {NTLINK_SUBSAMPLE_MAX_READS_PER_10KBP} if using ntLink mappings.",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -228,7 +228,12 @@ def build_indexes_and_mappings(
 
     btllib.log_info("Indexes and mappings built.")
 
-    return polishing_seqs_index, seqs_to_polish_index, mappings, subsample_max_reads_per_10kbp
+    return (
+        polishing_seqs_index,
+        seqs_to_polish_index,
+        mappings,
+        subsample_max_reads_per_10kbp,
+    )
 
 
 def run_bf_builder(
