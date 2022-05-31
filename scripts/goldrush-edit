@@ -417,6 +417,7 @@ def polish_seqs(
     btllib.check_error(
         subsample_max_reads_per_10kbp <= 0, "Subsample max reads per 10kbp is <=0"
     )
+    btllib.log_info(f"Subsampling mapped reads to {subsample_max_reads_per_10kbp}")
 
     # Where to build the Bloom filters
     bfs_dir = make_tmp_dir(workspace, prefix, BFS_DIRNAME)
