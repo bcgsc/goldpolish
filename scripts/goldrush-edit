@@ -49,6 +49,8 @@ GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
 GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
 GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
 END_SYMBOL = "x"
+NTLINK_SUBSAMPLE_MAX_READS_PER_10KBP = 100
+MINIMAP2_SUBSAMPLE_MAX_READS_PER_10KBP = 40
 
 
 class MappingTool(Enum):
@@ -65,20 +67,50 @@ def get_bf_builder_threads_num(total_threads):
 
 
 def get_cli_args():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("seqs_to_polish")
-    parser.add_argument("polishing_seqs")
-    parser.add_argument("output_seqs")
-    parser.add_argument("-k", action="append", default=[])
-    parser.add_argument("-b", "--bsize", default=1, type=int, help="Batch size.")
-    parser.add_argument("-m", "--shared-mem", default="/dev/shm")
-    parser.add_argument("-t", "--threads", type=int, default=48)
-    parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("-x", "--mx-max-reads-per-10kbp", type=float, default=150.0)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("seqs_to_polish", help="Sequences to polish.")
+    parser.add_argument("polishing_seqs", help="Sequences to polish with.")
+    parser.add_argument("output_seqs", help="Filename to write polished sequences to.")
     parser.add_argument(
-        "-s", "--subsample-max-reads-per-10kbp", type=float, default=120.0
+        "-k",
+        action="append",
+        default=[],
+        help="k-mer sizes to use for polishing. Example: -k32 -k28 (Default: 32, 28, 24, 20)",
+    )
+    parser.add_argument(
+        "-b",
+        "--bsize",
+        default=1,
+        type=int,
+        help="Batch size. A batch is how many polished sequences are processed per Bloom filter. (Default: 1)",
+    )
+    parser.add_argument(
+        "-m",
+        "--shared-mem",
+        default="/dev/shm",
+        help="Shared memory path to do polishing in. (Default: /dev/shm)",
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        type=int,
+        default=48,
+        help="How many threads to use. (Default: 48)",
+    )
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "-x",
+        "--mx-max-reads-per-10kbp",
+        type=float,
+        default=150.0,
+        help="When subsampling, increase the common minimizer count threshold for ntLink mappings until there's at most this many reads per 10kbp of polished sequence. (Default: 150)",
+    )
+    parser.add_argument(
+        "-s",
+        "--subsample-max-reads-per-10kbp",
+        type=float,
+        default=-1,
+        help="Random subsampling of mapped reads. For ntLink mappings, this is done after common minimizer subsampling. For minimap2 mappings, only this subsampling is done. By default, 40 if using minimap2 mappings and 100 if using ntLink mappings.",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -122,6 +154,7 @@ def build_indexes_and_mappings(
     k_values,
     mapping_tool,
     mappings,
+    subsample_max_reads_per_10kbp,
     threads,
     verbose,
 ):
@@ -136,11 +169,15 @@ def build_indexes_and_mappings(
             f"{basename(seqs_to_polish_path)}.k32.w100.z1000.mapping.tsv"
         )
         mappings = mappings_to_build
+        if subsample_max_reads_per_10kbp == -1:
+            subsample_max_reads_per_10kbp = NTLINK_SUBSAMPLE_MAX_READS_PER_10KBP
     elif mapping_tool == MappingTool.MINIMAP2:
         mappings_to_build = (
             f"{basename(seqs_to_polish_path)}.{basename(polishing_seqs_path)}.paf"
         )
         mappings = mappings_to_build
+        if subsample_max_reads_per_10kbp == -1:
+            subsample_max_reads_per_10kbp = MINIMAP2_SUBSAMPLE_MAX_READS_PER_10KBP
     elif mapping_tool == MappingTool.MAPPINGS_PROVIDED:
         if mappings.endswith(".verbose_mapping.tsv"):
             if not isfile(basename(mappings)):
@@ -356,12 +393,18 @@ def polish_seqs(
     autoclean(workspace, prefix)
 
     # Build indexes and mappings
-    polishing_seqs_index, seqs_to_polish_index, mappings = build_indexes_and_mappings(
+    (
+        polishing_seqs_index,
+        seqs_to_polish_index,
+        mappings,
+        subsample_max_reads_per_10kbp,
+    ) = build_indexes_and_mappings(
         polishing_seqs,
         seqs_to_polish,
         k_values,
         mapping_tool,
         mappings,
+        subsample_max_reads_per_10kbp,
         threads,
         verbose,
     )

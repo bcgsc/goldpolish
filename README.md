@@ -38,3 +38,35 @@ To polish a draft assembly named `assembly.fa` with long reads named `reads.fa` 
 ```
 goldrush-edit assembly.fa reads.fa assembly-polished.fa
 ```
+
+You can run `goldrush-edit --help` to see the available options:
+```
+usage: goldrush-edit [-h] [-k K] [-b BSIZE] [-m SHARED_MEM] [-t THREADS] [-v] [-x MX_MAX_READS_PER_10KBP] [-s SUBSAMPLE_MAX_READS_PER_10KBP]
+                     [--ntlink | --minimap2 | --mappings MAPPINGS]
+                     seqs_to_polish polishing_seqs output_seqs
+
+positional arguments:
+  seqs_to_polish        Sequences to polish.
+  polishing_seqs        Sequences to polish with.
+  output_seqs           Filename to write polished sequences to.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -k K                  k-mer sizes to use for polishing. Example: -k32 -k28 (Default: 32, 28, 24, 20)
+  -b BSIZE, --bsize BSIZE
+                        Batch size. A batch is how many polished sequences are processed per Bloom filter. (Default: 1)
+  -m SHARED_MEM, --shared-mem SHARED_MEM
+                        Shared memory path to do polishing in. (Default: /dev/shm)
+  -t THREADS, --threads THREADS
+                        How many threads to use. (Default: 48)
+  -v, --verbose
+  -x MX_MAX_READS_PER_10KBP, --mx-max-reads-per-10kbp MX_MAX_READS_PER_10KBP
+                        When subsampling, increase the common minimizer count threshold for ntLink mappings until there's at most this many reads per 10kbp of polished sequence.
+                        (Default: 150)
+  -s SUBSAMPLE_MAX_READS_PER_10KBP, --subsample-max-reads-per-10kbp SUBSAMPLE_MAX_READS_PER_10KBP
+                        Random subsampling of mapped reads. For ntLink mappings, this is done after common minimizer subsampling. For minimap2 mappings, only this subsampling is done.
+                        By default, 40 if using minimap2 mappings and 100 if using ntLink mappings.
+  --ntlink              Run ntLink to generate read mappings (default).
+  --minimap2            Run minimap2 to generate read mappings.
+  --mappings MAPPINGS   Use provided pre-generated mappings. Accepted formats are PAF, SAM, and *.verbose_mapping.tsv from ntLink.
+```
