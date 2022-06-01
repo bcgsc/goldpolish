@@ -62,8 +62,10 @@ SeqIndex::get_seq(const std::string& id) const
 
   if (!seqs_file_initialized) {
     seqs_file = open(seqs_filepath.c_str(), O_RDONLY);
+#ifdef linux
     const auto ret = posix_fadvise(seqs_file, 0, 0, POSIX_FADV_RANDOM);
     btllib::check_error(ret != 0, "posix_fadvise failed.");
+#endif
     seqs_file_initialized = true;
   }
 
