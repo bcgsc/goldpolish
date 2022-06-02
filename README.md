@@ -9,6 +9,7 @@ GoldRush-Edit is an efficient draft genome assembly polishing tool that uses lon
   * [meson](https://mesonbuild.com/)
   * [ninja](https://ninja-build.org/)
   * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
+  * [boost](https://www.boost.org/)
 
 - Run
   * GNU Make
