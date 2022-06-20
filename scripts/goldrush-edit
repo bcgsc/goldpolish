@@ -128,6 +128,18 @@ def get_cli_args():
         default="",
         help="Use provided pre-generated mappings. Accepted formats are PAF, SAM, and *.verbose_mapping.tsv from ntLink.",
     )
+    parser.add_argument(
+        "--k_ntLink",
+        type=int,
+        default=32,
+        help="k-mer size used for ntLink mappings (if --ntlink specified)"
+    )
+    parser.add_argument(
+        "--w_ntLink",
+        type=int,
+        default=100,
+        help="Window size used for ntLink mappings (if --ntlink specified)"
+    )
 
     args = parser.parse_args()
     args.seqs_to_polish = abspath(args.seqs_to_polish)
@@ -157,6 +169,8 @@ def build_indexes_and_mappings(
     subsample_max_reads_per_10kbp,
     threads,
     verbose,
+    k_ntLink,
+    w_ntLink,
 ):
     btllib.log_info(f"Building indexes and mappings...")
 
@@ -166,7 +180,7 @@ def build_indexes_and_mappings(
 
     if mapping_tool == MappingTool.NTLINK:
         mappings_to_build = (
-            f"{basename(seqs_to_polish_path)}.k32.w100.z1000.mapping.tsv"
+            f"{basename(seqs_to_polish_path)}.k{k_ntLink}.w{w_ntLink}.z1000.mapping.tsv"
         )
         mappings = mappings_to_build
         if subsample_max_reads_per_10kbp == -1:
@@ -209,7 +223,9 @@ def build_indexes_and_mappings(
         {seqs_to_polish_index} \
         {mappings_to_build} \
         {polishing_seqs_index} \
-        {"time=true" if verbose else ""}
+        {"time=true" if verbose else ""} \
+        {f"k_ntLink={k_ntLink}" if mapping_tool == MappingTool.NTLINK else ""} \
+        {f"w_ntLink={w_ntLink}" if mapping_tool == MappingTool.NTLINK else ""}
     """
             ],
             shell=True,
@@ -398,6 +414,8 @@ def polish_seqs(
     mapping_tool,
     mappings,
     verbose,
+    k_ntLink,
+    w_ntLink,
 ):
     prefix = get_random_name()
 
@@ -418,6 +436,8 @@ def polish_seqs(
         subsample_max_reads_per_10kbp,
         threads,
         verbose,
+        k_ntLink,
+        w_ntLink,
     )
     btllib.check_error(
         subsample_max_reads_per_10kbp <= 0, "Subsample max reads per 10kbp is <=0"
@@ -552,4 +572,6 @@ if __name__ == "__main__":
         mapping_tool,
         args.mappings,
         args.verbose,
+        args.k_ntLink,
+        args.w_ntLink
     )
