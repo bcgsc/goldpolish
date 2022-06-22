@@ -19,6 +19,10 @@ NTEDIT_Y=0.5
 SEALER_P=10
 SEALER_B=1000
 
+# ntLink mapping parameters (used if --ntlink specified)
+k_ntLink=32
+w_ntLink=100
+
 # Set shell
 SHELL=bash -e -o pipefail
 ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
@@ -46,8 +50,8 @@ endif
 %.index: %
 	goldrush-edit-index $< $@
 
-$(seqs_to_polish_notdir).k32.w100.z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
-	$(log_time) ntLink t=$(t) target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True
+$(seqs_to_polish_notdir).k$(k_ntLink).w$(w_ntLink).z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
+	$(log_time) ntLink t=$(t) target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True k=$(k_ntLink) w=$(w_ntLink)
 
 $(seqs_to_polish_notdir).%.mapping.tsv: $(seqs_to_polish_notdir).%.verbose_mapping.tsv
 	awk '{ print $$1" "$$2" "$$3 }' $< >$@
@@ -69,6 +73,6 @@ $(seqs_to_polish_notdir).$(polishing_seqs_notdir).paf: $(seqs_to_polish) $(polis
 
 clean:
 	rm -f *.index *.mapping.tsv
-	rm -f *.k32.w100.z1000.verbose_mapping.tsv *.k32.w100.tsv *.k32.w100.z1000.n1.scaffold.dot *.k32.w100.z1000.pairs.tsv
+	rm -f *.k(k_ntLink).w$(w_ntLink).z1000.verbose_mapping.tsv *.k$(k_ntLink).w$(w_ntLink).tsv *.k$(k_ntLink).w$(w_ntLink).z1000.n1.scaffold.dot *.k$(k_ntLink).w$(w_ntLink).z1000.pairs.tsv
 
 
