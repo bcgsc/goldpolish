@@ -34,10 +34,9 @@ endif
 
 threads_dep = dependency('threads')
 openmp_dep = dependency('openmp')
-boost_dep = dependency('boost')
 btllib_dep = compiler.find_library('btllib')
 
-deps = [ threads_dep, openmp_dep, boost_dep, btllib_dep ]
+deps = [ threads_dep, openmp_dep, btllib_dep ]
 
 # Source files, scripts
 # ===========================================================

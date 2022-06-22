@@ -6,8 +6,9 @@ compiler = meson.get_compiler('cpp')
 threads_dep = dependency('threads')
 openmp_dep = dependency('openmp')
 btllib_dep = compiler.find_library('btllib')
+boost_deps = [ compiler.find_library('boost_graph') ]
 
-deps = [ threads_dep, openmp_dep, btllib_dep ]
+deps = [ threads_dep, openmp_dep, btllib_dep ] + boost_deps
 
 subdir('Common')
 subdir('dialign')
