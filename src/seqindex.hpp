@@ -55,7 +55,7 @@ SeqIndex::get_seq(const std::string& id) const
   thread_local static int seqs_file;
   thread_local static bool seqs_file_initialized = false;
 
-  static const size_t max_seqlen = 1024ULL * 1024ULL;
+  static const size_t max_seqlen = 20ULL * 1024ULL * 1024ULL;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   thread_local static char* seq;
   thread_local static bool seq_initialized = false;
@@ -77,7 +77,7 @@ SeqIndex::get_seq(const std::string& id) const
   const auto& coords = seqs_coords.at(id);
   const auto seq_len = coords.seq_len;
   btllib::check_error(seq_len >= max_seqlen,
-                      FN_NAME + ": Seq size over max limit.");
+                      FN_NAME + ": Seq size over buffer size. Consider increasing buffer size.");
   // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   const auto lseek_ret = lseek(seqs_file, coords.seq_start, SEEK_SET);
   btllib::check_error(lseek_ret == -1,
