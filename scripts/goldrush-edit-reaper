@@ -15,7 +15,7 @@ import btllib
 from goldrush_edit_utils import bind_to_parent
 
 RUSH_DELAY = 1  # Seconds
-BATCH_DONE_PIPE = "polishing_done"
+BATCH_DONE_FILE = "polishing_done"
 POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"
 
@@ -42,8 +42,8 @@ def write_batch_results(polished_seqs, writer):
             writer.write(record.id, record.comment, record.seq)
 
 
-def wait_on_batch(batch_done_pipe):
-    with open(batch_done_pipe) as f:
+def wait_on_batch(batch_done_file):
+    with open(batch_done_file) as f:
         f.read()
 
 
@@ -53,13 +53,13 @@ def start_reapin(workspace, prefix, batch_polished_seqs, output_seqs):
         over = False
         while not over:
             batch_dir = join(workspace, f"{prefix}{SEPARATOR}{batch_num}")
-            batch_done_pipe = join(batch_dir, BATCH_DONE_PIPE)
+            batch_done_file = join(batch_dir, BATCH_DONE_FILE)
             polishing_over_file = join(batch_dir, POLISHING_OVER_FILE)
 
-            while not exists(batch_done_pipe):
+            while not exists(batch_done_file):
                 time.sleep(RUSH_DELAY)
 
-            wait_on_batch(batch_done_pipe)
+            wait_on_batch(batch_done_file)
 
             if exists(polishing_over_file):
                 over = True
