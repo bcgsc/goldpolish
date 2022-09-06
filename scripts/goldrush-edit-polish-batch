@@ -104,19 +104,7 @@ def cleanup_bfs(bfs_dirpath, bfs):
 
 
 def confirm_batch_done(batch_done_pipepath):
-    sp.run(
-        [
-            f""" \
-            {GOLDRUSH_EDIT_HOLD} \
-            {batch_done_pipepath} \
-        """
-        ],
-        shell=True,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-
+    sp.Popen([GOLDRUSH_EDIT_HOLD, batch_done_pipepath])
 
 def print_info(stdout, stderr):
     to_print = ""
