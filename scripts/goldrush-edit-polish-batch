@@ -16,6 +16,7 @@ from goldrush_edit_utils import (
 )
 
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
+GOLDRUSH_EDIT_HOLD = "goldrush-edit-hold"
 RETRY_DELAY = 0.2
 
 
@@ -102,9 +103,19 @@ def cleanup_bfs(bfs_dirpath, bfs):
         os.remove(join(bfs_dirpath, bf))
 
 
-def confirm_batch_done(batch_done_file):
-    with open(batch_done_file, "w") as f:
-        f.write(str(1))
+def confirm_batch_done(batch_done_pipepath):
+    sp.run(
+        [
+            f""" \
+            {GOLDRUSH_EDIT_HOLD} \
+            {batch_done_pipepath} \
+        """
+        ],
+        shell=True,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
 
 
 def print_info(stdout, stderr):
@@ -154,4 +165,4 @@ if __name__ == "__main__":
 
     update_simultaneous_batch_processes(args.workspace, args.prefix, -1)
 
-    confirm_batch_done(args.batch_done_file)
+    confirm_batch_done(args.batch_done_pipe)
