@@ -38,7 +38,7 @@ BATCH_NAME_INPUT_PIPE = "batch_name_input"
 BATCH_TARGET_IDS_INPUT_READY_PIPE = "batch_target_ids_input_ready"
 TARGET_IDS_INPUT_PIPE = "target_ids_input"
 BFS_READY_PIPE = "bfs_ready"
-BATCH_DONE_FILE = "polishing_done"
+BATCH_DONE_PIPE = "polishing_done"
 MAX_SIMULTANEOUS_BATCH_PROCESSES = 200
 BATCH_THREADS = 1
 SPAWN_DELAY = 0.05
@@ -327,7 +327,7 @@ def polish_batch(
     batch_seqs,
     batch_num,
     seq_ids,
-    batch_done_file,
+    batch_done_pipe,
     bfs_dir,
     k_values,
     workspace,
@@ -373,8 +373,8 @@ def polish_batch(
             target_ids_input_pipe,
             "--bfs-ready-pipe",
             bfs_ready_pipe,
-            "--batch-done-file",
-            batch_done_file,
+            "--batch-done-pipe",
+            batch_done_pipe,
             "--threads",
             str(threads),
         ]
@@ -396,8 +396,8 @@ def create_end_batch(end_file):
         print("1899", file=f)  # :O?!
 
 
-def confirm_polishing_done(polishing_done_filepath):
-    with open(polishing_done_filepath, "w") as f:
+def confirm_polishing_done(polishing_done_pipepath):
+    with open(polishing_done_pipepath, "w") as f:
         f.write(str(1))
 
 
@@ -496,13 +496,14 @@ def polish_seqs(
                 reader, join(batch_dir, batch_seqs), batch_size
             )
 
-            batch_done_file = join(batch_dir, BATCH_DONE_FILE)
+            batch_done_pipe = join(batch_dir, BATCH_DONE_PIPE)
+            os.mkfifo(batch_done_pipe)
 
             if reader_done:
                 assert len(seq_ids) == 0
                 polishing_over_file = join(batch_dir, POLISHING_OVER_FILE)
                 create_end_batch(polishing_over_file)
-                confirm_polishing_done(batch_done_file)
+                confirm_polishing_done(batch_done_pipe)
             else:
                 target_ids_input_pipe = join(
                     bfs_dir, f"{batch_num}{SEPARATOR}{TARGET_IDS_INPUT_PIPE}"
@@ -521,7 +522,7 @@ def polish_seqs(
                     batch_seqs,
                     batch_num,
                     seq_ids,
-                    batch_done_file,
+                    batch_done_pipe,
                     bfs_dir,
                     k_values,
                     workspace,

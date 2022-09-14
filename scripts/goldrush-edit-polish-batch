@@ -41,7 +41,7 @@ def get_cli_args():
     parser.add_argument("--seq-ids", default="seq_ids")
     parser.add_argument("--bfs-ids-pipe", default="targeted_input")
     parser.add_argument("--bfs-ready-pipe", default="targeted_ready")
-    parser.add_argument("--batch-done-file", default="batch_done")
+    parser.add_argument("--batch-done-pipe", default="batch_done")
     parser.add_argument("-t", "--threads", type=int, default=2)
     parser.add_argument("-v", "--verbose", action="store_true")
 
