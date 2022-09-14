@@ -28,13 +28,13 @@ jobs:
       source activate goldrush_edit_CI
       export PATH=$(pwd)/test_build/bin:$PATH
       cd tests
-      ./goldrush_test_demo.sh
+      ./goldrush_edit_test.sh
     displayName: Test run for GoldRush-Edit
 
 - job:
   displayName: mac-latest
   pool:
-    vmImage: 'mac-latest'
+    vmImage: 'macOS-latest'
 
   steps:
     - checkout: self
@@ -51,7 +51,7 @@ jobs:
       displayName: Install dependencies
     - script: |
         source activate goldrush_edit_CI
-        meson build --prefix=$p/test_build
+        meson build --prefix=$(pwd)/test_build
         cd build
         ninja install
         ../test_build/bin/goldrush-edit --help
@@ -60,5 +60,5 @@ jobs:
         source activate goldrush_edit_CI
         export PATH=$(pwd)/test_build/bin:$PATH
         cd tests
-        ./goldrush_test_demo.sh
+        ./goldrush_edit_test.sh
       displayName: Test run for GoldRush-Edit
