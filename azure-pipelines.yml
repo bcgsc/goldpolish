@@ -10,7 +10,7 @@ jobs:
     submodules: true
   - script: echo "##vso[task.prependpath]$CONDA/bin"
     displayName: Add conda to PATH
-  - script: conda create --yes --quiet --name goldrush_CI
+  - script: conda create --yes --quiet --name goldrush_edit_CI
     displayName: Create Anaconda environment
   - script: |
       source activate goldrush_edit_CI
@@ -26,11 +26,11 @@ jobs:
       ../test_build/bin/goldrush-edit --help
     displayName: Compile GoldRush-Edit
   - script: |
-      source activate goldrush_CI
+      source activate goldrush_edit_CI
       export PATH=$(pwd)/test_build/bin:$PATH
       cd tests
       ./goldrush_test_demo.sh
-    displayName: Test run for GoldRush
+    displayName: Test run for GoldRush-Edit
 
 - job:
   displayName: mac-latest
@@ -43,7 +43,7 @@ jobs:
       submodules: true
     - script: echo "##vso[task.prependpath]$CONDA/bin"
       displayName: Add conda to PATH
-    - script: conda create --yes --quiet --name goldrush_CI
+    - script: conda create --yes --quiet --name goldrush_edit_CI
       displayName: Create Anaconda environment
     - script: |
         source activate goldrush_edit_CI
@@ -59,8 +59,8 @@ jobs:
         ../test_build/bin/goldrush-edit --help
       displayName: Compile GoldRush-Edit
     - script: |
-        source activate goldrush_CI
+        source activate goldrush_edit_CI
         export PATH=$(pwd)/test_build/bin:$PATH
         cd tests
         ./goldrush_test_demo.sh
-      displayName: Test run for GoldRush
+      displayName: Test run for GoldRush-Edit
