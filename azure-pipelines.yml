@@ -1,19 +1,66 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+jobs:
+- job:
+  displayName: ubuntu-latest
+  pool:
+    vmImage: 'ubuntu-latest'
 
-trigger:
-- master
+  steps:
+  - checkout: self
+    persistCredentials: true
+    submodules: true
+  - script: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: Add conda to PATH
+  - script: conda create --yes --quiet --name goldrush_CI
+    displayName: Create Anaconda environment
+  - script: |
+      source activate goldrush_edit_CI
+      conda install --yes -c conda-forge mamba 
+      mamba install --yes -c conda-forge compilers meson  boost-cpp 
+      mamba install --yes -c bioconda -c conda-forge minimap2 ntlink btllib
+    displayName: Install dependencies
+  - script: |
+      source activate goldrush_edit_CI
+      meson build --prefix=$p/test_build
+      cd build
+      ninja install
+      ../test_build/bin/goldrush-edit --help
+    displayName: Compile GoldRush-Edit
+  - script: |
+      source activate goldrush_CI
+      export PATH=$(pwd)/test_build/bin:$PATH
+      cd tests
+      ./goldrush_test_demo.sh
+    displayName: Test run for GoldRush
 
-pool:
-  vmImage: ubuntu-latest
+- job:
+  displayName: mac-latest
+  pool:
+    vmImage: 'mac-latest'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  steps:
+    - checkout: self
+      persistCredentials: true
+      submodules: true
+    - script: echo "##vso[task.prependpath]$CONDA/bin"
+      displayName: Add conda to PATH
+    - script: conda create --yes --quiet --name goldrush_CI
+      displayName: Create Anaconda environment
+    - script: |
+        source activate goldrush_edit_CI
+        conda install --yes -c conda-forge mamba 
+        mamba install --yes -c conda-forge compilers meson  boost-cpp 
+        mamba install --yes -c bioconda -c conda-forge minimap2 ntlink btllib
+      displayName: Install dependencies
+    - script: |
+        source activate goldrush_edit_CI
+        meson build --prefix=$p/test_build
+        cd build
+        ninja install
+        ../test_build/bin/goldrush-edit --help
+      displayName: Compile GoldRush-Edit
+    - script: |
+        source activate goldrush_CI
+        export PATH=$(pwd)/test_build/bin:$PATH
+        cd tests
+        ./goldrush_test_demo.sh
+      displayName: Test run for GoldRush
