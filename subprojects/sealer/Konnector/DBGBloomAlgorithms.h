@@ -96,9 +96,9 @@ static inline unsigned getStartKmerPos(const Sequence& seq,
 
 	/* handle case where first/last kmer in seq is a match */
 	if (matchCount > maxMatchLen) {
-		assert(nthash.get_pos() - 1 >= 0 &&
-			nthash.get_pos() - 1 < (int)(seq.length() - k + 1));
-		maxMatchPos = nthash.get_pos() - 1;
+		assert(nthash.get_pos() >= 0 &&
+			nthash.get_pos() < (int)(seq.length() - k + 1));
+		maxMatchPos = nthash.get_pos();
 		maxMatchLen = matchCount;
 	}
 	if (maxMatchLen == 0)
