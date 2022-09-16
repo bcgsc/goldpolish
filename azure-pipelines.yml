@@ -62,3 +62,4 @@ jobs:
         cd tests
         ./goldrush_edit_test.sh
       displayName: Test run for GoldRush-Edit
+      
