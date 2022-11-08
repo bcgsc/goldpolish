@@ -15,7 +15,7 @@ GoldRush-Edit is an efficient draft genome assembly polishing tool that uses lon
   * GNU Make
   * Python 3
   * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
-  * [ntLink](https://github.com/bcgsc/ntlink) v1.3.0+
+  * [ntLink](https://github.com/bcgsc/ntlink) v1.3.5+
   * [minimap2](https://github.com/lh3/minimap2)
 
 The dependencies can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
