@@ -51,7 +51,7 @@ endif
 	goldrush-edit-index $< $@
 
 $(seqs_to_polish_notdir).k$(k_ntLink).w$(w_ntLink).z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
-	$(log_time) ntLink t=$(t) target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True k=$(k_ntLink) w=$(w_ntLink)
+	$(log_time) ntLink t=$(t) target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True k=$(k_ntLink) w=$(w_ntLink) sensitive=True
 
 $(seqs_to_polish_notdir).%.mapping.tsv: $(seqs_to_polish_notdir).%.verbose_mapping.tsv
 	awk '{ print $$1" "$$2" "$$3 }' $< >$@
