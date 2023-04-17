@@ -46,6 +46,7 @@ POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"
 GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
+GOLDRUSH_EDIT_MAKE_FULL_PATH = f"{os.path.realpath(__file__)}/{GOLDRUSH_EDIT_MAKE}"
 GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
 GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
 END_SYMBOL = "x"
@@ -216,7 +217,7 @@ def build_indexes_and_mappings(
             [
                 f""" \
         make -Rrf \
-        {GOLDRUSH_EDIT_MAKE} \
+        {GOLDRUSH_EDIT_MAKE_FULL_PATH} \
         t={threads} \
         polishing_seqs={polishing_seqs_path} \
         seqs_to_polish={seqs_to_polish_path} \
