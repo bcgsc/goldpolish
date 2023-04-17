@@ -215,6 +215,7 @@ def build_indexes_and_mappings(
         p = sp.run(
             [
                 f""" \
+        make -Rrf \
         {GOLDRUSH_EDIT_MAKE} \
         t={threads} \
         polishing_seqs={polishing_seqs_path} \
