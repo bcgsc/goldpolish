@@ -26,7 +26,7 @@ conda install -c bioconda btllib ntlink minimap2
 
 ## Installation
 
-To build GoldRush-Edit and install it at `$GOLDRUSH_EDIT_PREFIX`, run the following commands from within the `goldrush-edit` directory:
+To build GoldPolish and install it at `$GOLDRUSH_EDIT_PREFIX`, run the following commands from within the `goldrush-edit` directory:
 ```
 meson setup build --buildtype release --prefix $GOLDRUSH_EDIT_PREFIX
 cd build
