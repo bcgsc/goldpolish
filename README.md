@@ -24,6 +24,11 @@ conda install -c conda-forge meson ninja
 conda install -c bioconda btllib ntlink minimap2
 ```
 
+## Citation
+If you use GoldPolish in your research, please cite:
+
+Wong J, Coombe L, Nikolić V, Zhang E, Nip KM, Sidhu P, Warren RL and Birol I (2023). Linear time complexity de novo long read genome assembly with GoldRush. Nature Communications, 14(1), 2906. https://doi.org/10.1038/s41467-023-38716-x
+
 ## Installation
 
 To build GoldPolish and install it at `$GOLDRUSH_EDIT_PREFIX`, run the following commands from within the `goldrush-edit` directory:
