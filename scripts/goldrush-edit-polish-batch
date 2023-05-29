@@ -16,6 +16,7 @@ from goldrush_edit_utils import (
 )
 
 GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
+GOLDRUSH_EDIT_MAKE_FULL_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/{GOLDRUSH_EDIT_MAKE}"
 GOLDRUSH_EDIT_HOLD = "goldrush-edit-hold"
 RETRY_DELAY = 0.2
 
@@ -78,7 +79,8 @@ def run_polishing(seqs_to_polish, bfs, k_values, threads):
         sealer_protocol_process = sp.run(
             [
                 f""" \
-        {GOLDRUSH_EDIT_MAKE} \
+        make -Rrf \
+        {GOLDRUSH_EDIT_MAKE_FULL_PATH} \
         seqs_to_polish={seqs_to_polish} \
         bfs='{bfs}' \
         K='{k_values}' \
