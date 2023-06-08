@@ -35,8 +35,7 @@ get_random_indices(const size_t total_size, const size_t count)
   btllib::check_error(count > total_size,
                       FN_NAME + ": count cannot be larger than total_size.");
 
-  static std::random_device dev;
-  static std::mt19937 rng(dev());
+  static std::mt19937 rng(0);
 
   std::vector<size_t> all_indices(total_size);
   std::iota(all_indices.begin(), all_indices.end(), 0);
