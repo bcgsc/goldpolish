@@ -12,10 +12,10 @@
 size_t
 calc_phred_average(const std::string& qual, size_t offset)
 {
-  uint32_t phred_sum = 0;
+  size_t phred_sum = 0;
 
   for (size_t i = 0; i < qual.size() -  offset; ++i) {
-    phred_sum += (uint32_t)qual.at(i);
+    phred_sum += (size_t)qual.at(i);
     }
 
   return (phred_sum / qual.size()) - 33;
@@ -47,7 +47,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
         
       } else if (i % 4 == 3) {
         
-        seqs_coords.emplace(std::piecewise_construct,
+        seqs_coords_and_phred_avg.emplace(std::piecewise_construct,
                             std::make_tuple(id),
                             std::make_tuple(seq_start, seq_len, calc_phred_average(line, 1)));
       }
@@ -59,7 +59,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
       } else {
         const auto seq_start = id_endbyte + 1;
         const auto seq_len = endbyte - id_endbyte - 1;
-        seqs_coords.emplace(std::piecewise_construct,
+        seqs_coords_and_phred_avg.emplace(std::piecewise_construct,
                             std::make_tuple(id),
                             std::make_tuple(seq_start, seq_len, 0));
       }
@@ -77,12 +77,12 @@ SeqIndex::save(const std::string& filepath)
   btllib::log_info(FN_NAME + ": Saving index to " + filepath + "... ");
 
   std::ofstream indexfile(filepath);
-  for (const auto& seq_coords : seqs_coords) {
+  for (const auto& seq_coords : seqs_coords_and_phred_avg) {
     const auto id = seq_coords.first;
     const auto seq_start = seq_coords.second.seq_start;
     const auto seq_len = seq_coords.second.seq_len;
-    const auto phred = seq_coords.second.phred;
-    indexfile << id << '\t' << seq_start << '\t' << seq_len << '\t' << phred << '\n';
+    const auto phred_avg = seq_coords.second.phred_avg;
+    indexfile << id << '\t' << seq_start << '\t' << seq_len << '\t' << phred_avg << '\n';
   }
 
   btllib::log_info(FN_NAME + ": Done.");
@@ -96,7 +96,7 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
   std::ifstream ifs(index_filepath);
   btllib::check_stream(ifs, index_filepath);
   std::string token, id;
-  unsigned long seq_start = 0, seq_len = 0, phred = 0;
+  unsigned long seq_start = 0, seq_len = 0, phred_avg = 0;
   unsigned long i = 0;
   while (bool(ifs >> token)) {
     switch (i % 4) {
@@ -111,10 +111,10 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
         break;
       }
       case 3: {
-        phred = std::stoul(token);
-        seqs_coords.emplace(std::piecewise_construct,
+        phred_avg = std::stoul(token);
+        seqs_coords_and_phred_avg.emplace(std::piecewise_construct,
                             std::make_tuple(id),
-                            std::make_tuple(seq_start, seq_len, phred));
+                            std::make_tuple(seq_start, seq_len, phred_avg));
         break;
       }
       default: {
@@ -130,18 +130,18 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
 size_t
 SeqIndex::get_seq_len(const std::string& id) const
 {
-  return seqs_coords.at(id).seq_len;
+  return seqs_coords_and_phred_avg.at(id).seq_len;
 }
 
 size_t
-SeqIndex::get_seq_phred(const std::string& id) const
+SeqIndex::get_phred_avg(const std::string& id) const
 {
-  return seqs_coords.at(id).phred;
+  return seqs_coords_and_phred_avg.at(id).phred_avg;
 }
 
 
 bool
 SeqIndex::seq_exists(const std::string& id) const
 {
-  return seqs_coords.find(id) != seqs_coords.end();
+  return seqs_coords_and_phred_avg.find(id) != seqs_coords_and_phred_avg.end();
 }
