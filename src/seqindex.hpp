@@ -15,11 +15,12 @@
 
 struct SeqCoordinates
 {
-  size_t seq_start, seq_len;
+  size_t seq_start, seq_len, phred;
 
-  SeqCoordinates(const size_t seq_start, const size_t seq_len)
+  SeqCoordinates(const size_t seq_start, const size_t seq_len, const size_t phred)
     : seq_start(seq_start)
     , seq_len(seq_len)
+    , phred(phred)
   {}
 };
 
@@ -39,6 +40,8 @@ public:
   std::tuple<const char*, size_t> get_seq(const std::string& id) const;
 
   size_t get_seq_len(const std::string& id) const;
+
+  size_t get_seq_phred(const std::string& id) const;
 
   bool seq_exists(const std::string& id) const;
 

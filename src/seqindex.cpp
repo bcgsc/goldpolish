@@ -9,6 +9,18 @@
 #include <iostream>
 #include <string>
 
+size_t
+calc_phred_average(const std::string& qual, size_t offset)
+{
+  uint32_t phred_sum = 0;
+
+  for (size_t i = 0; i < qual.size() -  offset; ++i) {
+    phred_sum += (uint32_t)qual.at(i);
+    }
+
+  return (phred_sum / qual.size()) - 33;
+}
+
 SeqIndex::SeqIndex(const std::string& seqs_filepath)
   : seqs_filepath(seqs_filepath)
 {
@@ -21,7 +33,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
 
   std::string line;
   std::string id;
-  long i = 0, byte = 0 /*, id_startbyte = 0*/, id_endbyte = 0;
+  long i = 0, byte = 0 /*, id_startbyte = 0*/, id_endbyte = 0, seq_start = 0, seq_len = 0;
   while (bool(std::getline(seqsfile, line))) {
     const long endbyte = byte + long(line.size());
     if (fastq) {
@@ -30,11 +42,14 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
         id_endbyte = endbyte;
         id = btllib::split(line, " ")[0].substr(1);
       } else if (i % 4 == 1) {
-        const auto seq_start = id_endbyte + 1;
-        const auto seq_len = endbyte - id_endbyte - 1;
+        seq_start = id_endbyte + 1;
+        seq_len = endbyte - id_endbyte - 1;
+        
+      } else if (i % 4 == 3) {
+        
         seqs_coords.emplace(std::piecewise_construct,
                             std::make_tuple(id),
-                            std::make_tuple(seq_start, seq_len));
+                            std::make_tuple(seq_start, seq_len, calc_phred_average(line, 1)));
       }
     } else {
       if (i % 2 == 0) {
@@ -46,7 +61,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
         const auto seq_len = endbyte - id_endbyte - 1;
         seqs_coords.emplace(std::piecewise_construct,
                             std::make_tuple(id),
-                            std::make_tuple(seq_start, seq_len));
+                            std::make_tuple(seq_start, seq_len, 0));
       }
     }
     byte = endbyte + 1;
@@ -66,7 +81,8 @@ SeqIndex::save(const std::string& filepath)
     const auto id = seq_coords.first;
     const auto seq_start = seq_coords.second.seq_start;
     const auto seq_len = seq_coords.second.seq_len;
-    indexfile << id << '\t' << seq_start << '\t' << seq_len << '\n';
+    const auto phred = seq_coords.second.phred;
+    indexfile << id << '\t' << seq_start << '\t' << seq_len << '\t' << phred << '\n';
   }
 
   btllib::log_info(FN_NAME + ": Done.");
@@ -80,10 +96,10 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
   std::ifstream ifs(index_filepath);
   btllib::check_stream(ifs, index_filepath);
   std::string token, id;
-  unsigned long seq_start = 0, seq_len = 0;
+  unsigned long seq_start = 0, seq_len = 0, phred = 0;
   unsigned long i = 0;
   while (bool(ifs >> token)) {
-    switch (i % 3) {
+    switch (i % 4) {
       case 0:
         id = std::move(token);
         break;
@@ -92,9 +108,13 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
         break;
       case 2: {
         seq_len = std::stoul(token);
+        break;
+      }
+      case 3: {
+        phred = std::stoul(token);
         seqs_coords.emplace(std::piecewise_construct,
                             std::make_tuple(id),
-                            std::make_tuple(seq_start, seq_len));
+                            std::make_tuple(seq_start, seq_len, phred));
         break;
       }
       default: {
@@ -112,6 +132,13 @@ SeqIndex::get_seq_len(const std::string& id) const
 {
   return seqs_coords.at(id).seq_len;
 }
+
+size_t
+SeqIndex::get_seq_phred(const std::string& id) const
+{
+  return seqs_coords.at(id).phred;
+}
+
 
 bool
 SeqIndex::seq_exists(const std::string& id) const
