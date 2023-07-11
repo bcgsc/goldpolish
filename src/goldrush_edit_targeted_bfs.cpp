@@ -105,19 +105,18 @@ serve_batch(const SeqIndex& target_seqs_index,
       mappings_phred.emplace_back(mapped_id, mapped_seq_phred);
     }
 
-
     std::sort(mappings_phred.begin(),
               mappings_phred.end(),
               [](const auto& a, const auto& b) {
                 const auto& [a_id, a_phred] = a;
                 const auto& [b_id, b_phred] = b;
-                return (a_phred > b_phred) || (a_phred == b_phred && a_id < b_id);
+                return (a_phred > b_phred) ||
+                       (a_phred == b_phred && a_id < b_id);
               });
 
     unsigned long mappings_bases = 0;
 
-    for (size_t i = 0 ; i < mappings_num_adjusted ; i++)
-    {
+    for (size_t i = 0; i < mappings_num_adjusted; i++) {
       const auto& [mapped_id, mapped_seq_phred] = mappings_phred[i];
       const auto mapped_seq_len = mapped_seqs_index.get_seq_len(mapped_id);
       mappings_bases += mapped_seq_len;
@@ -128,8 +127,7 @@ serve_batch(const SeqIndex& target_seqs_index,
                         FN_NAME + ": k-mer threshold must be >0.");
 
     // NOLINTNEXTLINE(google-readability-braces-around-statements,hicpp-braces-around-statements,readability-braces-around-statements)
-    for (size_t i = 0 ; i < mappings_num_adjusted ; i++)
-    {
+    for (size_t i = 0; i < mappings_num_adjusted; i++) {
       const auto& [mapped_id, mapped_seq_phred] = mappings_phred[i];
       const auto [seq, seq_len] = mapped_seqs_index.get_seq<1>(mapped_id);
       fill_bfs(seq, seq_len, hash_num, k_values, kmer_threshold, cbfs, bfs);
@@ -177,9 +175,9 @@ process_batch_name(const SeqIndex& target_seqs_index,
   confirm_pipe(batch_target_ids_input_ready_pipe);
 
 #pragma omp task firstprivate(                                                 \
-  batch_name, batch_target_ids_input_pipe, batch_bfs_ready_pipe)               \
+    batch_name, batch_target_ids_input_pipe, batch_bfs_ready_pipe)             \
   shared(                                                                      \
-    target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
+      target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
   serve_batch(target_seqs_index,
               mapped_seqs_index,
               all_mappings,

@@ -19,11 +19,14 @@ struct SeqCoordinatesAndPhredAvg
   size_t seq_start, seq_len;
   double phred_avg;
 
-  SeqCoordinatesAndPhredAvg(const size_t seq_start, const size_t seq_len, const double phred_avg)
+  SeqCoordinatesAndPhredAvg(const size_t seq_start,
+                            const size_t seq_len,
+                            const double phred_avg)
     : seq_start(seq_start)
     , seq_len(seq_len)
     , phred_avg(phred_avg)
-  {}
+  {
+  }
 };
 
 class SeqIndex
@@ -49,7 +52,8 @@ public:
 
 private:
   std::string seqs_filepath;
-  std::unordered_map<std::string, SeqCoordinatesAndPhredAvg> seqs_coords_and_phred_avg;
+  std::unordered_map<std::string, SeqCoordinatesAndPhredAvg>
+    seqs_coords_and_phred_avg;
 };
 
 template<int i>
@@ -81,8 +85,9 @@ SeqIndex::get_seq(const std::string& id) const
 
   const auto& coords = seqs_coords_and_phred_avg.at(id);
   const auto seq_len = coords.seq_len;
-  btllib::check_error(seq_len >= max_seqlen,
-                      FN_NAME + ": Seq size over buffer size. Consider increasing buffer size.");
+  btllib::check_error(
+    seq_len >= max_seqlen,
+    FN_NAME + ": Seq size over buffer size. Consider increasing buffer size.");
   // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   const auto lseek_ret = lseek(seqs_file, coords.seq_start, SEEK_SET);
   btllib::check_error(lseek_ret == -1,
