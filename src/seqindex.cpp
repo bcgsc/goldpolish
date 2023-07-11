@@ -9,17 +9,6 @@
 #include <iostream>
 #include <string>
 
-size_t
-calc_phred_average(const std::string& qual, size_t offset)
-{
-  size_t phred_sum = 0;
-
-  for (size_t i = 0; i < qual.size() -  offset; ++i) {
-    phred_sum += (size_t)qual.at(i);
-    }
-
-  return (phred_sum / qual.size()) - 33;
-}
 
 SeqIndex::SeqIndex(const std::string& seqs_filepath)
   : seqs_filepath(seqs_filepath)
@@ -49,7 +38,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
         
         seqs_coords_and_phred_avg.emplace(std::piecewise_construct,
                             std::make_tuple(id),
-                            std::make_tuple(seq_start, seq_len, calc_phred_average(line, 1)));
+                            std::make_tuple(seq_start, seq_len, btllib::calc_phred_avg(line, 0, line.size() - 1)));
       }
     } else {
       if (i % 2 == 0) {
@@ -61,7 +50,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
         const auto seq_len = endbyte - id_endbyte - 1;
         seqs_coords_and_phred_avg.emplace(std::piecewise_construct,
                             std::make_tuple(id),
-                            std::make_tuple(seq_start, seq_len, 0));
+                            std::make_tuple(seq_start, seq_len, 0.0));
       }
     }
     byte = endbyte + 1;
@@ -96,7 +85,8 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
   std::ifstream ifs(index_filepath);
   btllib::check_stream(ifs, index_filepath);
   std::string token, id;
-  unsigned long seq_start = 0, seq_len = 0, phred_avg = 0;
+  unsigned long seq_start = 0, seq_len = 0;
+  double phred_avg = 0.0;
   unsigned long i = 0;
   while (bool(ifs >> token)) {
     switch (i % 4) {
@@ -111,7 +101,7 @@ SeqIndex::SeqIndex(const std::string& index_filepath, std::string seqs_filepath)
         break;
       }
       case 3: {
-        phred_avg = std::stoul(token);
+        phred_avg = std::stod(token);
         seqs_coords_and_phred_avg.emplace(std::piecewise_construct,
                             std::make_tuple(id),
                             std::make_tuple(seq_start, seq_len, phred_avg));
@@ -133,7 +123,7 @@ SeqIndex::get_seq_len(const std::string& id) const
   return seqs_coords_and_phred_avg.at(id).seq_len;
 }
 
-size_t
+double
 SeqIndex::get_phred_avg(const std::string& id) const
 {
   return seqs_coords_and_phred_avg.at(id).phred_avg;

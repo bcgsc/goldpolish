@@ -99,14 +99,13 @@ serve_batch(const SeqIndex& target_seqs_index,
         10'000.0);
     const auto mappings_num_adjusted = std::min(mappings_num, mappings_num_max);
 
-    // iterate mappings and make a vector of tuples of (mapped_id, phred)
     std::vector<std::tuple<SeqId, size_t>> mappings_phred;
     for (const auto& mapped_id : mappings) {
       const auto mapped_seq_phred = mapped_seqs_index.get_phred_avg(mapped_id);
       mappings_phred.emplace_back(mapped_id, mapped_seq_phred);
     }
 
-    // sort mappings by phred largest to smallest then by id
+
     std::sort(mappings_phred.begin(),
               mappings_phred.end(),
               [](const auto& a, const auto& b) {

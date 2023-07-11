@@ -4,6 +4,7 @@
 #include "utils.hpp"
 
 #include "btllib/status.hpp"
+#include "btllib/util.hpp"
 
 #include <fstream>
 #include <string>
@@ -15,9 +16,10 @@
 
 struct SeqCoordinatesAndPhredAvg
 {
-  size_t seq_start, seq_len, phred_avg;
+  size_t seq_start, seq_len;
+  double phred_avg;
 
-  SeqCoordinatesAndPhredAvg(const size_t seq_start, const size_t seq_len, const size_t phred_avg)
+  SeqCoordinatesAndPhredAvg(const size_t seq_start, const size_t seq_len, const double phred_avg)
     : seq_start(seq_start)
     , seq_len(seq_len)
     , phred_avg(phred_avg)
@@ -41,7 +43,7 @@ public:
 
   size_t get_seq_len(const std::string& id) const;
 
-  size_t get_phred_avg(const std::string& id) const;
+  double get_phred_avg(const std::string& id) const;
 
   bool seq_exists(const std::string& id) const;
 
