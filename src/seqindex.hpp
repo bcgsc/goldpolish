@@ -4,6 +4,7 @@
 #include "utils.hpp"
 
 #include "btllib/status.hpp"
+#include "btllib/util.hpp"
 
 #include <fstream>
 #include <string>
@@ -13,14 +14,19 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct SeqCoordinates
+struct SeqCoordinatesAndPhredAvg
 {
   size_t seq_start, seq_len;
+  double phred_avg;
 
-  SeqCoordinates(const size_t seq_start, const size_t seq_len)
+  SeqCoordinatesAndPhredAvg(const size_t seq_start,
+                            const size_t seq_len,
+                            const double phred_avg)
     : seq_start(seq_start)
     , seq_len(seq_len)
-  {}
+    , phred_avg(phred_avg)
+  {
+  }
 };
 
 class SeqIndex
@@ -40,11 +46,14 @@ public:
 
   size_t get_seq_len(const std::string& id) const;
 
+  double get_phred_avg(const std::string& id) const;
+
   bool seq_exists(const std::string& id) const;
 
 private:
   std::string seqs_filepath;
-  std::unordered_map<std::string, SeqCoordinates> seqs_coords;
+  std::unordered_map<std::string, SeqCoordinatesAndPhredAvg>
+    seqs_coords_and_phred_avg;
 };
 
 template<int i>
@@ -74,10 +83,11 @@ SeqIndex::get_seq(const std::string& id) const
     seq_initialized = true;
   }
 
-  const auto& coords = seqs_coords.at(id);
+  const auto& coords = seqs_coords_and_phred_avg.at(id);
   const auto seq_len = coords.seq_len;
-  btllib::check_error(seq_len >= max_seqlen,
-                      FN_NAME + ": Seq size over buffer size. Consider increasing buffer size.");
+  btllib::check_error(
+    seq_len >= max_seqlen,
+    FN_NAME + ": Seq size over buffer size. Consider increasing buffer size.");
   // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   const auto lseek_ret = lseek(seqs_file, coords.seq_start, SEEK_SET);
   btllib::check_error(lseek_ret == -1,

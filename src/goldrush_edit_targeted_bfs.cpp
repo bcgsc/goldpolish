@@ -99,12 +99,25 @@ serve_batch(const SeqIndex& target_seqs_index,
         10'000.0);
     const auto mappings_num_adjusted = std::min(mappings_num, mappings_num_max);
 
-    const auto random_indices =
-      get_random_indices(mappings_num, mappings_num_adjusted);
+    std::vector<std::tuple<SeqId, size_t>> mappings_phred;
+    for (const auto& mapped_id : mappings) {
+      const auto mapped_seq_phred = mapped_seqs_index.get_phred_avg(mapped_id);
+      mappings_phred.emplace_back(mapped_id, mapped_seq_phred);
+    }
+
+    std::sort(mappings_phred.begin(),
+              mappings_phred.end(),
+              [](const auto& a, const auto& b) {
+                const auto& [a_id, a_phred] = a;
+                const auto& [b_id, b_phred] = b;
+                return (a_phred > b_phred) ||
+                       (a_phred == b_phred && a_id < b_id);
+              });
 
     unsigned long mappings_bases = 0;
-    for (const auto mapped_id_idx : random_indices) {
-      const auto mapped_id = mappings.at(mapped_id_idx);
+
+    for (size_t i = 0; i < mappings_num_adjusted; i++) {
+      const auto& [mapped_id, mapped_seq_phred] = mappings_phred[i];
       const auto mapped_seq_len = mapped_seqs_index.get_seq_len(mapped_id);
       mappings_bases += mapped_seq_len;
     }
@@ -114,8 +127,8 @@ serve_batch(const SeqIndex& target_seqs_index,
                         FN_NAME + ": k-mer threshold must be >0.");
 
     // NOLINTNEXTLINE(google-readability-braces-around-statements,hicpp-braces-around-statements,readability-braces-around-statements)
-    for (const auto mapped_id_idx : random_indices) {
-      const auto mapped_id = mappings.at(mapped_id_idx);
+    for (size_t i = 0; i < mappings_num_adjusted; i++) {
+      const auto& [mapped_id, mapped_seq_phred] = mappings_phred[i];
       const auto [seq, seq_len] = mapped_seqs_index.get_seq<1>(mapped_id);
       fill_bfs(seq, seq_len, hash_num, k_values, kmer_threshold, cbfs, bfs);
     }
@@ -162,9 +175,9 @@ process_batch_name(const SeqIndex& target_seqs_index,
   confirm_pipe(batch_target_ids_input_ready_pipe);
 
 #pragma omp task firstprivate(                                                 \
-  batch_name, batch_target_ids_input_pipe, batch_bfs_ready_pipe)               \
+    batch_name, batch_target_ids_input_pipe, batch_bfs_ready_pipe)             \
   shared(                                                                      \
-    target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
+      target_seqs_index, mapped_seqs_index, all_mappings, bf_names, k_values)
   serve_batch(target_seqs_index,
               mapped_seqs_index,
               all_mappings,

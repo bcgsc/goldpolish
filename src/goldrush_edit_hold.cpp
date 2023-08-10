@@ -1,7 +1,9 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
-int main(int argc, char** argv) {
+int
+main(int argc, char** argv)
+{
   if (argc < 2) {
     std::cerr << "Missing pipe path\n";
     return -1;
