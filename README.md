@@ -1,6 +1,8 @@
+![Logo](https://github.com/bcgsc/goldpolish/blob/master/goldpolish-logo.png)
+
 # GoldPolish (aka GoldRush-Edit)
 
-GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing tool that uses long reads for polishing. [ntEdit](https://github.com/bcgsc/ntEdit) polishes the draft assembly and flags erroneous regions, then [Sealer](https://github.com/bcgsc/abyss/tree/master/Sealer) fills assembly gaps and erroneous sequence regions flagged by ntEdit. The polisher is adapted from [ntedit_sealer_protocol](https://github.com/bcgsc/ntedit_sealer_protocol/) to use long reads instead of short reads.
+GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing tool that uses long reads for polishing. [ntEdit](https://github.com/bcgsc/ntEdit) polishes the draft assembly and flags additional erroneous regions, then [Sealer](https://github.com/bcgsc/abyss/tree/master/Sealer) fills assembly gaps and erroneous sequence regions flagged by ntEdit. The polisher is adapted from [ntedit_sealer_protocol](https://github.com/bcgsc/ntedit_sealer_protocol/) to use long reads instead of short reads.
 
 ## Dependencies
 
