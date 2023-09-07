@@ -1,4 +1,4 @@
-project('goldrush-edit', 'cpp',
+project('goldpolish', 'cpp',
         version : '0.1.0',
         license : 'GPL3',
         default_options : [ 'cpp_std=c++17', 'warning_level=3', 'werror=true' ])

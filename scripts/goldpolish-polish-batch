@@ -8,16 +8,16 @@ import time
 
 import btllib
 
-from goldrush_edit_utils import (
+from goldpolish_utils import (
     bind_to_parent,
     update_threads_in_use,
     compare_update_threads_in_use,
     update_simultaneous_batch_processes,
 )
 
-GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
-GOLDRUSH_EDIT_MAKE_FULL_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/{GOLDRUSH_EDIT_MAKE}"
-GOLDRUSH_EDIT_HOLD = "goldrush-edit-hold"
+GOLDPOLISH_MAKE = "goldpolish-make"
+GOLDPOLISH_MAKE_FULL_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/{GOLDPOLISH_MAKE}"
+GOLDPOLISH_HOLD = "goldpolish-hold"
 RETRY_DELAY = 0.2
 
 
@@ -80,7 +80,7 @@ def run_polishing(seqs_to_polish, bfs, k_values, threads):
             [
                 f""" \
         make -Rrf \
-        {GOLDRUSH_EDIT_MAKE_FULL_PATH} \
+        {GOLDPOLISH_MAKE_FULL_PATH} \
         seqs_to_polish={seqs_to_polish} \
         bfs='{bfs}' \
         K='{k_values}' \
@@ -106,7 +106,7 @@ def cleanup_bfs(bfs_dirpath, bfs):
 
 
 def confirm_batch_done(batch_done_pipepath):
-    sp.Popen([GOLDRUSH_EDIT_HOLD, batch_done_pipepath])
+    sp.Popen([GOLDPOLISH_HOLD, batch_done_pipepath])
 
 def print_info(stdout, stderr):
     to_print = ""

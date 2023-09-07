@@ -1,13 +1,13 @@
 scripts = [
-    'goldrush_edit_utils.py',
-    'goldrush-edit',
-    'goldrush-edit-autoclean',
-    'goldrush-edit-make',
-    'goldrush-edit-mask',
-    'goldrush-edit-ntedit',
-    'goldrush-edit-polish-batch',
-    'goldrush-edit-reaper',
-    'goldrush-edit-to-upper'
+    'goldpolish_utils.py',
+    'goldpolish',
+    'goldpolish-autoclean',
+    'goldpolish-make',
+    'goldpolish-mask',
+    'goldpolish-ntedit',
+    'goldpolish-polish-batch',
+    'goldpolish-reaper',
+    'goldpolish-to-upper'
 ]
 
 install_data(scripts, install_dir : 'bin')

@@ -10,26 +10,26 @@ jobs:
     submodules: true
   - script: echo "##vso[task.prependpath]$CONDA/bin"
     displayName: Add conda to PATH
-  - script: conda create --yes --quiet --name goldrush_edit_CI
+  - script: conda create --yes --quiet --name goldpolish_CI
     displayName: Create Anaconda environment
   - script: |
-      source activate goldrush_edit_CI
+      source activate goldpolish_CI
       conda install --yes -c conda-forge mamba python=3.9
       mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib
     displayName: Install dependencies
   - script: |
-      source activate goldrush_edit_CI
+      source activate goldpolish_CI
       meson build --prefix=$(pwd)/test_build
       cd build
       ninja install
-      ../test_build/bin/goldrush-edit --help
-    displayName: Compile GoldRush-Edit
+      ../test_build/bin/goldpolish --help
+    displayName: Compile GoldPolish
   - script: |
-      source activate goldrush_edit_CI
+      source activate goldpolish_CI
       export PATH=$(pwd)/test_build/bin:$PATH
       cd tests
-      ./goldrush_edit_test.sh
-    displayName: Test run for GoldRush-Edit
+      ./goldpolish_test.sh
+    displayName: Test run for GoldPolish
 
 - job:
   displayName: mac-latest
@@ -42,24 +42,24 @@ jobs:
       submodules: true
     - script: echo "##vso[task.prependpath]$CONDA/bin"
       displayName: Add conda to PATH
-    - script: conda create --yes --quiet --name goldrush_edit_CI
+    - script: conda create --yes --quiet --name goldpolish_CI
       displayName: Create Anaconda environment
     - script: |
-        source activate goldrush_edit_CI
+        source activate goldpolish_CI
         conda install --yes -c conda-forge mamba python=3.9
         mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib llvm
       displayName: Install dependencies
     - script: |
-        source activate goldrush_edit_CI
+        source activate goldpolish_CI
         meson build --prefix=$(pwd)/test_build
         cd build
         ninja install
-        ../test_build/bin/goldrush-edit --help
-      displayName: Compile GoldRush-Edit
+        ../test_build/bin/goldpolish --help
+      displayName: Compile GoldPolish
     - script: |
-        source activate goldrush_edit_CI
+        source activate goldpolish_CI
         export PATH=$(pwd)/test_build/bin:$PATH
         cd tests
-        ./goldrush_edit_test.sh
-      displayName: Test run for GoldRush-Edit
+        ./goldpolish_test.sh
+      displayName: Test run for GoldPolish
       
