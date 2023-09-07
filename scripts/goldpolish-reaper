@@ -12,7 +12,7 @@ import shutil
 
 import btllib
 
-from goldrush_edit_utils import bind_to_parent
+from goldpolish_utils import bind_to_parent
 
 RUSH_DELAY = 1  # Seconds
 

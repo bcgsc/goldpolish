@@ -22,8 +22,8 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
 
 The dependencies can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
-conda install -c conda-forge meson ninja 
-conda install -c bioconda btllib ntlink minimap2
+conda install -c conda-forge -c bioconda compilers meson boost-cpp btllib ntlink minimap2
+
 ```
 
 ## Citation
@@ -33,9 +33,9 @@ Wong J, Coombe L, Nikolić V, Zhang E, Nip KM, Sidhu P, Warren RL and Birol I (2
 
 ## Installation
 
-To build GoldPolish and install it at `$GOLDRUSH_EDIT_PREFIX`, run the following commands from within the `goldrush-edit` directory:
+To build GoldPolish and install it at `$GOLDPOLISH_PREFIX`, run the following commands from within the `goldpolish` directory:
 ```
-meson setup build --buildtype release --prefix $GOLDRUSH_EDIT_PREFIX
+meson setup build --buildtype release --prefix $GOLDPOLISH_PREFIX
 cd build
 ninja install
 ```
@@ -44,14 +44,14 @@ ninja install
 
 To polish a draft assembly named `assembly.fa` with long reads named `reads.fa` and store the results at `assembly-polished.fa`, run the following:
 ```
-goldrush-edit assembly.fa reads.fa assembly-polished.fa
+goldpolish assembly.fa reads.fa assembly-polished.fa
 ```
 
-You can run `goldrush-edit --help` to see the available options:
+You can run `goldpolish --help` to see the available options:
 ```
-usage: goldrush-edit [-h] [-k K] [-b BSIZE] [-m SHARED_MEM] [-t THREADS] [-v] [-x MX_MAX_READS_PER_10KBP] [-s SUBSAMPLE_MAX_READS_PER_10KBP]
-                     [--ntlink | --minimap2 | --mappings MAPPINGS]
-                     seqs_to_polish polishing_seqs output_seqs
+usage: goldpolish [-h] [-k K] [-b BSIZE] [-m SHARED_MEM] [-t THREADS] [-v] [-x MX_MAX_READS_PER_10KBP] [-s SUBSAMPLE_MAX_READS_PER_10KBP]
+                  [--ntlink | --minimap2 | --mappings MAPPINGS]
+                  seqs_to_polish polishing_seqs output_seqs
 
 positional arguments:
   seqs_to_polish        Sequences to polish.

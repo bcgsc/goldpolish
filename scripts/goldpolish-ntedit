@@ -34,7 +34,7 @@ size_diff=$(echo "scale=4; $output_size / $input_size" | bc)
 skip=$(echo "$size_diff < 0.75" | bc -l)
 if [[ $skip -eq 1 ]]; then
   ln -sf ${seqs_basename}.fa ${outfile}
-  echo "goldrush-edit-ntedit: skipped ${seqs_basename}.fa"
+  echo "goldpolish-ntedit: skipped ${seqs_basename}.fa"
 else
   ln -sf ${prev}.fa ${outfile}
 fi

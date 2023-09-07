@@ -22,7 +22,7 @@ from enum import Enum, auto
 
 import btllib
 
-from goldrush_edit_utils import (
+from goldpolish_utils import (
     get_random_name,
     watch_process,
     create_threads_in_use,
@@ -44,11 +44,11 @@ BATCH_THREADS = 1
 SPAWN_DELAY = 0.05
 POLISHING_OVER_FILE = "gg"
 SEPARATOR = "-"
-GOLDRUSH_EDIT_TARGETED_BFS = "goldrush-edit-targeted-bfs"
-GOLDRUSH_EDIT_MAKE = "goldrush-edit-make"
-GOLDRUSH_EDIT_MAKE_FULL_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/{GOLDRUSH_EDIT_MAKE}"
-GOLDRUSH_EDIT_POLISH_BATCH = "goldrush-edit-polish-batch"
-GOLDRUSH_EDIT_REAPER = "goldrush-edit-reaper"
+GOLDPOLISH_TARGETED_BFS = "goldpolish-targeted-bfs"
+GOLDPOLISH_MAKE = "goldpolish-make"
+GOLDPOLISH_MAKE_FULL_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/{GOLDPOLISH_MAKE}"
+GOLDPOLISH_POLISH_BATCH = "goldpolish-polish-batch"
+GOLDPOLISH_REAPER = "goldpolish-reaper"
 END_SYMBOL = "x"
 NTLINK_SUBSAMPLE_MAX_READS_PER_10KBP = 100
 MINIMAP2_SUBSAMPLE_MAX_READS_PER_10KBP = 40
@@ -157,7 +157,7 @@ def get_cli_args():
 
 
 def autoclean(workspace, prefix):
-    process = sp.Popen(["goldrush-edit-autoclean", workspace, prefix])
+    process = sp.Popen(["goldpolish-autoclean", workspace, prefix])
     watch_process(process)
 
 
@@ -217,7 +217,7 @@ def build_indexes_and_mappings(
             [
                 f""" \
         make -Rrf \
-        {GOLDRUSH_EDIT_MAKE_FULL_PATH} \
+        {GOLDPOLISH_MAKE_FULL_PATH} \
         t={threads} \
         polishing_seqs={polishing_seqs_path} \
         seqs_to_polish={seqs_to_polish_path} \
@@ -272,7 +272,7 @@ def run_bf_builder(
 
     process = sp.Popen(
         [
-            GOLDRUSH_EDIT_TARGETED_BFS,
+            GOLDPOLISH_TARGETED_BFS,
             seqs_to_polish,
             seqs_to_polish_index,
             mappings,
@@ -291,7 +291,7 @@ def run_bf_builder(
         batch_target_ids_input_ready_pipe
     ):
         time.sleep(2)
-    btllib.log_info(f"{GOLDRUSH_EDIT_TARGETED_BFS} is ready!")
+    btllib.log_info(f"{GOLDPOLISH_TARGETED_BFS} is ready!")
 
     return process
 
@@ -359,7 +359,7 @@ def polish_batch(
 
     process = sp.Popen(
         [
-            GOLDRUSH_EDIT_POLISH_BATCH,
+            GOLDPOLISH_POLISH_BATCH,
             batch_seqs,
             bfs_dir,
             workspace,
@@ -388,7 +388,7 @@ def polish_batch(
 
 def start_reaper(workspace, prefix, batch_polished_seqs, output_seqs):
     process = sp.Popen(
-        [GOLDRUSH_EDIT_REAPER, workspace, prefix, batch_polished_seqs, output_seqs]
+        [GOLDPOLISH_REAPER, workspace, prefix, batch_polished_seqs, output_seqs]
     )
     watch_process(process)
 
@@ -552,7 +552,7 @@ if __name__ == "__main__":
     else:
         workspace = os.getcwd()
         btllib.log_warning(
-            f"GoldRush-Edit: {args.shared_mem} not present. Polishing might run slower."
+            f"GoldPolish: {args.shared_mem} not present. Polishing might run slower."
         )
 
     mapping_tool = MappingTool.NTLINK

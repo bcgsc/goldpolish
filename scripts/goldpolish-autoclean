@@ -20,7 +20,7 @@ import atexit
 import sys
 import argparse
 
-from goldrush_edit_utils import wait_till_parent_ends
+from goldpolish_utils import wait_till_parent_ends
 
 EXIT_FAILURE = -1
 CLEANING_DELAY = 3  # Seconds

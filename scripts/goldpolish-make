@@ -45,10 +45,10 @@ endif
 .SECONDARY:
 
 %.upper.fa: %.fa
-	goldrush-edit-to-upper $< $@
+	goldpolish-to-upper $< $@
 
 %.index: %
-	goldrush-edit-index $< $@
+	goldpolish-index $< $@
 
 $(seqs_to_polish_notdir).k$(k_ntLink).w$(w_ntLink).z1000.verbose_mapping.tsv: $(seqs_to_polish) $(polishing_seqs)
 	$(log_time) ntLink t=$(t) target=$(seqs_to_polish) reads=$(polishing_seqs) pair verbose=True k=$(k_ntLink) w=$(w_ntLink) sensitive=True
@@ -60,10 +60,10 @@ $(seqs_to_polish_notdir).$(polishing_seqs_notdir).paf: $(seqs_to_polish) $(polis
 	minimap2 -t$(t) $(seqs_to_polish) $(polishing_seqs) >$@
 
 %.ntedited.fa: %.fa $(bfs)
-	goldrush-edit-ntedit $(basename $<) "$(bfs)" "$(K)" $(NTEDIT_X) $(NTEDIT_Y) $(t) $@
+	goldpolish-ntedit $(basename $<) "$(bfs)" "$(K)" $(NTEDIT_X) $(NTEDIT_Y) $(t) $@
 
 %.prepd.fa: %.fa
-	goldrush-edit-mask -s -k$(firstword $(K)) $< >$@
+	goldpolish-mask -s -k$(firstword $(K)) $< >$@
 
 %.sealer_scaffold.fa: %.fa $(bfs)
 	sealer-gr -v -S $< \
