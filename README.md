@@ -10,7 +10,7 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
   * GCC 7+ or Clang 8+ (with OpenMP support)
   * [meson](https://mesonbuild.com/)
   * [ninja](https://ninja-build.org/)
-  * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
+  * [btllib](https://github.com/bcgsc/btllib) v1.6.2+
   * [boost](https://www.boost.org/)
 
 - Run
@@ -22,7 +22,7 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
 
 The dependencies can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
-conda install -c conda-forge -c bioconda compilers meson boost-cpp btllib ntlink minimap2
+conda install -c conda-forge -c bioconda compilers meson ninja boost-cpp btllib ntlink minimap2
 
 ```
 
