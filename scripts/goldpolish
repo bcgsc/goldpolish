@@ -19,6 +19,7 @@ from os.path import (
 import shutil
 import time
 from enum import Enum, auto
+import goldpolish-target
 
 import btllib
 
@@ -52,6 +53,7 @@ GOLDPOLISH_REAPER = "goldpolish-reaper"
 END_SYMBOL = "x"
 NTLINK_SUBSAMPLE_MAX_READS_PER_10KBP = 100
 MINIMAP2_SUBSAMPLE_MAX_READS_PER_10KBP = 40
+GOLDPOLISH_TARGET = "goldpolish-target.py"
 
 
 class MappingTool(Enum):
@@ -140,6 +142,39 @@ def get_cli_args():
         type=int,
         default=100,
         help="Window size used for ntLink mappings (if --ntlink specified)",
+    )
+    parser.add_argument(
+        "--target",
+        default=False,
+        help='Run GoldPolish in targeted mode'
+    )
+    parser.add_argument(
+        "-l",
+        "--length",
+        type=int,
+        default=64,
+        help="GoldPolish-Target flank length (if --target specified)"
+    )
+    remapping_group = parser.add_mutually_exclusive_group()
+    remapping_group.add_argument(
+        "--ntLink",
+        action="store_true",
+        help="Run ntLink to generate read mappings (default) (if --target specified)",
+    )
+    remapping_group.add_argument(
+        "--minimap2",
+        action="store_true",
+        help="Run minimap2 to generate read mappings (if --target specified)",
+    )
+    parser.add_argument(
+        "sensitive",
+        default=True,
+        help="Setting for ntLink pair remapping (if --target and --ntLink specified)"
+    )
+    parser.add_argument(
+        "--bed",
+        default="",
+        help="BED file specifying target coordinates (if --target specified)"
     )
 
     args = parser.parse_args()
@@ -542,6 +577,27 @@ def polish_seqs(
     shutil.rmtree(bfs_dir, ignore_errors=True)
     btllib.log_info("Polisher done")
 
+def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, minimap2, ntlink, sensitive, bed):
+    process = sp.Popen(
+        [
+            GOLDPOLISH_TARGET, 
+            '--fasta', fasta, 
+            '--reads', reads,
+            '--prefix', prefix,
+            '--length', length,
+            '-s', s,
+            '-x', x,
+            '--ntLink', ntlink,
+            '--minimap2', minimap2,
+            '--k_ntlink', k,
+            '--w_ntlink', w,
+            '--sensitive', sensitive,
+            '--bed', bed
+        ]
+    )
+    watch_process(process)
+    btllib.log_info("Targeted polishing finished")
+    exit(0)
 
 if __name__ == "__main__":
     args = get_cli_args()
@@ -553,6 +609,22 @@ if __name__ == "__main__":
         workspace = os.getcwd()
         btllib.log_warning(
             f"GoldPolish: {args.shared_mem} not present. Polishing might run slower."
+        )
+
+    if args.target:
+        run_goldpolish_target(
+            args.seqs_to_polish,
+            args.polishing_seqs,
+            args.output_seqs,
+            args.length,
+            args.k_ntLink,
+            args.w_ntLink,
+            args.subsample_max_reads_per_10kbp,
+            args.mx_max_reads_per_10kbp,
+            args.minimap2,
+            args.ntLink,
+            args.sensitive,
+            args.bed
         )
 
     mapping_tool = MappingTool.NTLINK
