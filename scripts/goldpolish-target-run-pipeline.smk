@@ -78,7 +78,7 @@ rule extract_seq:
     input: fa=expand("{fasta}", fasta=fasta),
     output: "{prefix}.gaps.fa"
     params: options=expand("-l {length} -o {prefix}.gaps.fa", length=length, prefix=prefix),
-            path_to_script=expand("{script_path}/extract_seq.py", script_path=script_path),
+            path_to_script=expand("{script_path}/goldpolish-target-extract-seq.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.extract_seq.time", benchmark_path=benchmark_path) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -f {input.fa} {params.options}"
 
@@ -87,7 +87,7 @@ rule update_mapping_paf:
     input: gaps="{prefix}.gaps.fa",
            mapping=rules.run_minimap2.output
     output: "{prefix}.gaps.fa.paf"
-    params: path_to_script=expand("{script_path}/update_mapping.py", script_path=script_path),
+    params: path_to_script=expand("{script_path}/goldpolish-target-update-mapping.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.update_mapping.time", benchmark_path=benchmark_path) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -g {input.gaps} -m {input.mapping} -o {output}"
 
@@ -96,7 +96,7 @@ rule update_mapping_tsv:
     input: gaps=expand("{prefix}.gaps.fa", prefix=prefix),
            mapping=rules.run_ntLink_pair.output
     output: expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.z1000.verbose_mapping.tsv", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
-    params: path_to_script=expand("{script_path}/update_mapping.py", script_path=script_path),
+    params: path_to_script=expand("{script_path}/goldpolish-target-update-mapping.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {prefix}.update_mapping.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -g {input.gaps} -m {input.mapping} -o {output}"
 
@@ -112,6 +112,6 @@ rule run_post_processing:
     input: "{prefix}.gaps.goldpolished.fa"
     output: "{prefix}.polished.fa"
     params: options=expand("-f {fasta} -o {prefix}.polished.fa", fasta=fasta, prefix=prefix),
-            path_to_script=expand("{script_path}/post_processing.py", script_path=script_path),
+            path_to_script=expand("{script_path}/goldpolish-target-post-processing.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.post_processing.time", benchmark_path=benchmark_path) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} {params.options} -g {input}"

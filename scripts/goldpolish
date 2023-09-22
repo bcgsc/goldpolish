@@ -19,7 +19,6 @@ from os.path import (
 import shutil
 import time
 from enum import Enum, auto
-import goldpolish-target
 
 import btllib
 
@@ -145,7 +144,7 @@ def get_cli_args():
     )
     parser.add_argument(
         "--target",
-        default=False,
+        action="store_true",
         help='Run GoldPolish in targeted mode'
     )
     parser.add_argument(
@@ -155,20 +154,10 @@ def get_cli_args():
         default=64,
         help="GoldPolish-Target flank length (if --target specified)"
     )
-    remapping_group = parser.add_mutually_exclusive_group()
-    remapping_group.add_argument(
-        "--ntLink",
-        action="store_true",
-        help="Run ntLink to generate read mappings (default) (if --target specified)",
-    )
-    remapping_group.add_argument(
-        "--minimap2",
-        action="store_true",
-        help="Run minimap2 to generate read mappings (if --target specified)",
-    )
     parser.add_argument(
-        "sensitive",
+        "--sensitive",
         default=True,
+        required=False,
         help="Setting for ntLink pair remapping (if --target and --ntLink specified)"
     )
     parser.add_argument(
@@ -578,20 +567,24 @@ def polish_seqs(
     btllib.log_info("Polisher done")
 
 def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, minimap2, ntlink, sensitive, bed):
+    if ntlink:
+        mapper='--ntLink'
+    else:
+        mapper='--minimap2'
+
     process = sp.Popen(
         [
             GOLDPOLISH_TARGET, 
             '--fasta', fasta, 
             '--reads', reads,
             '--prefix', prefix,
-            '--length', length,
-            '-s', s,
-            '-x', x,
-            '--ntLink', ntlink,
-            '--minimap2', minimap2,
-            '--k_ntlink', k,
-            '--w_ntlink', w,
-            '--sensitive', sensitive,
+            '--length', str(length),
+            '-s', str(s),
+            #'-x', str(x),
+            mapper,
+            '--k_ntlink', str(k),
+            '--w_ntlink', str(w),
+            '--sensitive', str(sensitive),
             '--bed', bed
         ]
     )
@@ -617,12 +610,12 @@ if __name__ == "__main__":
             args.polishing_seqs,
             args.output_seqs,
             args.length,
-            args.k_ntLink,
-            args.w_ntLink,
+            args.k_ntlink,
+            args.w_ntlink,
             args.subsample_max_reads_per_10kbp,
             args.mx_max_reads_per_10kbp,
             args.minimap2,
-            args.ntLink,
+            args.ntlink,
             args.sensitive,
             args.bed
         )

@@ -131,7 +131,7 @@ def main():
         target = "minimap2_target"
 
     command = (
-        f"snakemake -s {base_dir}/goldpolish_target_run_pipeline.smk --cores {args.t} "
+        f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"{target} --config f={args.fasta} l={args.length} t={args.t} "
         f"mapper={mapping_info[0]} b={args.bed} p={args.prefix} reads={args.reads} "
         f"s={mapping_info[1]} sensitive={args.sensitive} "
