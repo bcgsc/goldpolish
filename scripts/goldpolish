@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import argparse
 import os
 import math
@@ -156,14 +155,18 @@ def get_cli_args():
     )
     parser.add_argument(
         "--sensitive",
-        default=True,
-        required=False,
-        help="Setting for ntLink pair remapping (if --target and --ntLink specified)"
+        action="store_false",
+        help="Setting for ntLink pair remapping (if --target and --ntlink specified)"
     )
     parser.add_argument(
         "--bed",
         default="",
         help="BED file specifying target coordinates (if --target specified)"
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Specifies benchmarking for goldpolish-target (if --target specified)"
     )
 
     args = parser.parse_args()
@@ -566,11 +569,14 @@ def polish_seqs(
     shutil.rmtree(bfs_dir, ignore_errors=True)
     btllib.log_info("Polisher done")
 
-def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, minimap2, ntlink, sensitive, bed):
+def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, ntlink, sensitive, bed, benchmark):
     if ntlink:
         mapper='--ntLink'
     else:
         mapper='--minimap2'
+    
+    if benchmark: 
+        benchmark = '--benchmark'
 
     process = sp.Popen(
         [
@@ -580,12 +586,13 @@ def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, minimap2, nt
             '--prefix', prefix,
             '--length', str(length),
             '-s', str(s),
-            #'-x', str(x),
             mapper,
+            '-x', str(x),
             '--k_ntlink', str(k),
             '--w_ntlink', str(w),
             '--sensitive', str(sensitive),
-            '--bed', bed
+            '--bed', bed,
+            benchmark
         ]
     )
     watch_process(process)
@@ -614,10 +621,10 @@ if __name__ == "__main__":
             args.w_ntlink,
             args.subsample_max_reads_per_10kbp,
             args.mx_max_reads_per_10kbp,
-            args.minimap2,
             args.ntlink,
             args.sensitive,
-            args.bed
+            args.bed,
+            args.benchmark
         )
 
     mapping_tool = MappingTool.NTLINK

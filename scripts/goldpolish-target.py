@@ -8,6 +8,7 @@ import os
 import shlex
 import subprocess
 import btllib
+from goldpolish_utils import wait_till_parent_ends
 
 
 def parse_args():
@@ -36,9 +37,13 @@ def parse_args():
     )
     parser.add_argument(
         "-s",
-        "--SUBSAMPLE_MAX_READS_PER_10KBP",
+        "--subsample-max-reads-per-10kbp",
         help="s parameter for GoldPolish ",
         default=100,
+    )
+    parser.add_argument(
+        "-x"
+        "--mx-max-reads-per-10kbp"
     )
     parser.add_argument("-r", "--reads", help="reads file", required=True)
 
@@ -99,7 +104,6 @@ def parse_args():
     if args.t < 2:
         args.t = 2
         btllib.log_warning("Threads number is too low. Setting to 2.")
-
     return args
 
 
@@ -113,7 +117,8 @@ def get_mapping_info(minimap2, ntLink):
         s_goldpolish = 40
     else:
         raise ValueError("Unknown mapping tool")
-    return (mapper, s_goldpolish)
+    x_goldpolish = 150
+    return (mapper, s_goldpolish, x_goldpolish)
 
 
 def main():
@@ -134,7 +139,7 @@ def main():
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"{target} --config f={args.fasta} l={args.length} t={args.t} "
         f"mapper={mapping_info[0]} b={args.bed} p={args.prefix} reads={args.reads} "
-        f"s={mapping_info[1]} sensitive={args.sensitive} "
+        f"s={mapping_info[1]} x={mapping_info[2]} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
 
@@ -155,3 +160,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    wait_till_parent_ends()

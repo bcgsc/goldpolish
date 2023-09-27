@@ -93,7 +93,8 @@ def make_interval_tree(tree_dict, args):
             populate_trees(tree_dict, seq_name, seq_interval)
         return tree_dict
 
-def read_mapping_suffix(args):
+#NOT EVER RUN RIGHT NOW
+""" def read_mapping_suffix(args):
     "Determines if mapping file is ntLink verbose mapping or paf"
     if "verbose_mapping" in args.mapping and "tsv" in args.mapping:
         verbose = True
@@ -102,7 +103,6 @@ def read_mapping_suffix(args):
     else:
         raise ValueError("Mapping file must either be verbose_mapping file or paf file")
     return verbose
-
 
 def update_verbose_mapping_file(args, tree_dict):
     "Updates ntLink verbose mapping file based on new coordinate system"
@@ -127,29 +127,28 @@ def update_verbose_mapping_file(args, tree_dict):
                     minimizer_details = minimizer.split(":")
                     position = int(minimizer_details[0])  # position of mapped minimizer
 
+                    pos = list(tree.at(position))
                     # if minimizers are mapped to gap sequence, updates position
-                    if tree.at(position):
+                    if pos:
                         update_row = True  # update row in df
-                        seq_interval = list(tree.at(position))[0]
-                        gap_name = list(tree.at(position))[0].data
+                        seq_interval = pos[0]
+                        gap_name = pos[0].data
 
                         # updating position for the minimizer
                         seq_start = seq_interval.begin
                         minimizer_details[0] = str(position - seq_start)
                         minimizer_details = ":".join(minimizer_details)
 
-                        if gap_name in new_minimizers:
-                            new_minimizers[gap_name].append(minimizer_details)
-                        else:
-                            new_minimizers[gap_name] = [minimizer_details]
+                        new_minimizers.setdefault(gap_name, []).append(minimizer_details)
 
                 if update_row:
                     for gap in new_minimizers.keys():
+                        gap_info = new_minimizers[gap]
                         temp_row = row
                         temp_row[1] = gap
-                        temp_row[2] = len(new_minimizers[gap])
-                        temp_row[3] = " ".join(new_minimizers[gap])
-                        writer.writerow(temp_row)
+                        temp_row[2] = len(gap_info)
+                        temp_row[3] = " ".join(gap_info)
+                        writer.writerow(temp_row) """
 
 
 def update_paf_file(args, tree_dict):
@@ -224,12 +223,13 @@ def main():
     # makes tree dictionary with contig names
     tree_dict = {}
     trees = make_interval_tree(tree_dict, args)
-    verbose = read_mapping_suffix(args)
+    #verbose = read_mapping_suffix(args)
+    # update_verbose_mapping_file(args, trees
 
-    if verbose:
-        update_verbose_mapping_file(args, trees)
-    else:
+    if "paf" in args.mapping:
         update_paf_file(args, trees)
+    else:
+        raise ValueError("Mapping file must be a paf file")
 
 if __name__ == "__main__":
     main()

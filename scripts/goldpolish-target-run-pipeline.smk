@@ -18,12 +18,12 @@ k_ntlink = config["k_ntlink"] if "k_ntlink" in config else 32
 w_ntlink = config["w_ntlink"] if "w_ntlink" in config else 1000
 prefix = config["p"] if "p" in config else "GoldPolish-Target_out"
 s = config["s"] if "s" in config else 100
+x = config["x"] if "x" in config else 150
 max_threads = config["t"] if "t" in config else 48
 benchmark = config["benchmark"] if "benchmark" in config else False
 sensitive = config["sensitive"] if "sensitive" in config else True
 
 # If want to benchmark, use memusg or /usr/bin/time
-# The snakemake benchmarking is quite inaccurate for shorter runtimes
 benchmark_path = "" 
 if benchmark:
     if benchmark_memusg := shutil.which("memusg"):
@@ -48,8 +48,8 @@ rule ntLink_target:
     input: expand("{prefix}.polished.fa", prefix=prefix),
            expand("{prefix}.gaps.fa", prefix=prefix),
            expand("{prefix}.gaps.goldpolished.fa", prefix=prefix),
-           expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.verbose_mapping.tsv", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink),
-           expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.z1000.verbose_mapping.tsv", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
+           expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.paf", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink),
+           expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.paf", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
 
 rule minimap2_target:
     input: expand("{prefix}.polished.fa", prefix=prefix),
@@ -61,8 +61,8 @@ rule minimap2_target:
 rule run_ntLink_pair:
     input: fa=expand("{fasta}", fasta=fasta),
            reads=expand("{reads}", reads=reads)
-    output: expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.verbose_mapping.tsv", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
-    params: options=expand("sensitive={sensitive} dev=True k={k_ntlink} w={w_ntlink} t={max_threads}", sensitive=sensitive, k_ntlink=k_ntlink, w_ntlink=w_ntlink, max_threads=max_threads),
+    output: expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.paf", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
+    params: options=expand("sensitive={sensitive} dev=True k={k_ntlink} w={w_ntlink} t={max_threads} paf=True", sensitive=sensitive, k_ntlink=k_ntlink, w_ntlink=w_ntlink, max_threads=max_threads),
             benchmarking=expand("{benchmark_path} -o {prefix}.ntLink_pair.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} ntLink pair target={input.fa} reads={input.reads} {params.options}"
 
@@ -70,7 +70,7 @@ rule run_minimap2:
     input: fa=expand("{fasta}", fasta=fasta),
            reads=expand("{reads}", reads=reads)
     output: "{prefix}.unpolished.paf"
-    params: options=expand("-x map-ont -t {max_threads}", max_threads=max_threads),
+    params: options=expand("-t {max_threads}", max_threads=max_threads),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.minimap2.time", benchmark_path=benchmark_path) if benchmark else []
     shell: "{params.benchmarking} minimap2 {params.options} {input.fa} {input.reads} > {output}"
 
@@ -91,11 +91,11 @@ rule update_mapping_paf:
             benchmarking=expand("{benchmark_path} -o {{prefix}}.update_mapping.time", benchmark_path=benchmark_path) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -g {input.gaps} -m {input.mapping} -o {output}"
 
-# rule for verbose_mapping file / ntlink pair remapping
+# rule for ntlink pair remapping
 rule update_mapping_tsv:
     input: gaps=expand("{prefix}.gaps.fa", prefix=prefix),
            mapping=rules.run_ntLink_pair.output
-    output: expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.z1000.verbose_mapping.tsv", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
+    output: expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.z1000.paf", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
     params: path_to_script=expand("{script_path}/goldpolish-target-update-mapping.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {prefix}.update_mapping.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -g {input.gaps} -m {input.mapping} -o {output}"
@@ -104,7 +104,7 @@ rule run_goldpolish:
     input: mapping=choose_mapping,
            gaps="{prefix}.gaps.fa"
     output: "{prefix}.gaps.goldpolished.fa"
-    params: options=expand("-s {s} -t {max_threads}", s=s, max_threads=max_threads),
+    params: options=expand("-s {s} -x {x} -t {max_threads}", s=s, x=x, max_threads=max_threads),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.goldpolish.time", benchmark_path=benchmark_path) if benchmark else []
     shell: "{params.benchmarking} goldpolish --mappings {input.mapping} {params.options} {input.gaps} {reads} {output}"
 
