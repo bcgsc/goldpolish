@@ -8,8 +8,6 @@ import os
 import shlex
 import subprocess
 import btllib
-from goldpolish_utils import wait_till_parent_ends
-
 
 def parse_args():
     """Parses Arguments passed by users via CLI"""
@@ -72,7 +70,10 @@ def parse_args():
         default=100,
     )
     parser.add_argument(
-        "--sensitive", help="Sensitive remapping (if --ntlink specified)", default=True
+        "--sensitive", 
+        help="Sensitive remapping (if --ntlink specified)", 
+        default=True,
+        required=True
     )
 
     parser.add_argument(
@@ -91,8 +92,13 @@ def parse_args():
     )
     parser.add_argument(
         "--benchmark",
+        action='store_true',
         help="Store benchmarks for each step of the GoldPolish-Target pipeline",
-        action="store_true",
+    )
+    parser.add_argument(
+        "--dev",
+        action='store_true',
+        help="Keeps intermediate files"
     )
     parser.add_argument("-t", help="Number of threads [48]", type=int, default=48)
     parser.add_argument(
@@ -120,6 +126,11 @@ def get_mapping_info(minimap2, ntLink):
     x_goldpolish = 150
     return (mapper, s_goldpolish, x_goldpolish)
 
+def cleanup():
+    files = [f for f in os.listdir() if os.path.isfile(f)]
+    for file in files:
+        if 'INTERMEDIATE' in file:
+            os.remove(file)
 
 def main():
     "Run goldpolish-target snakemake file"
@@ -130,10 +141,7 @@ def main():
         args.ntLink,
     )
 
-    if args.ntLink:
-        target = "ntLink_target"
-    else:
-        target = "minimap2_target"
+    target = "ntLink_target" if args.ntlink else "minimap2_target"
 
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
@@ -144,6 +152,7 @@ def main():
     )
 
     command += "benchmark=True " if args.benchmark else "benchmark=False "
+    command += "delete_intermediates=INTERMEDIATE. " if not args.dev else ""
 
     if args.dry_run:
         command += " -n "
@@ -157,7 +166,9 @@ def main():
         raise subprocess.SubprocessError(
             "GoldPolish-Target failed - check the logs for the error."
         )
+    
+    if not args.dev:
+        cleanup()
 
 if __name__ == "__main__":
     main()
-    wait_till_parent_ends()

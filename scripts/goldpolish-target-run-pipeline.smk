@@ -22,6 +22,7 @@ x = config["x"] if "x" in config else 150
 max_threads = config["t"] if "t" in config else 48
 benchmark = config["benchmark"] if "benchmark" in config else False
 sensitive = config["sensitive"] if "sensitive" in config else True
+intermediate = config["delete_intermediates"] if "delete_intermediates" in config else ''
 
 # If want to benchmark, use memusg or /usr/bin/time
 benchmark_path = "" 
@@ -46,22 +47,22 @@ def choose_mapping(Wildcards):
 
 rule ntLink_target:
     input: expand("{prefix}.polished.fa", prefix=prefix),
-           expand("{prefix}.gaps.fa", prefix=prefix),
-           expand("{prefix}.gaps.goldpolished.fa", prefix=prefix),
-           expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.paf", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink),
-           expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.paf", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
+           expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate),
+           expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate),
+           expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.{intermediate}paf", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate),
+           expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.{intermediate}paf", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate)
 
 rule minimap2_target:
     input: expand("{prefix}.polished.fa", prefix=prefix),
-           expand("{prefix}.gaps.fa", prefix=prefix),
-           expand("{prefix}.gaps.goldpolished.fa", prefix=prefix),
-           expand("{prefix}.gaps.fa.paf", prefix=prefix),
-           expand("{prefix}.unpolished.paf", prefix=prefix)
+           expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate),
+           expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate),
+           expand("{prefix}.gaps.fa.{intermediate}paf", prefix=prefix, intermediate=intermediate),
+           expand("{prefix}.unpolished.{intermediate}paf", prefix=prefix, intermediate=intermediate)
 
 rule run_ntLink_pair:
     input: fa=expand("{fasta}", fasta=fasta),
            reads=expand("{reads}", reads=reads)
-    output: expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.paf", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
+    output: expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.{intermediate}paf", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate)
     params: options=expand("sensitive={sensitive} dev=True k={k_ntlink} w={w_ntlink} t={max_threads} paf=True", sensitive=sensitive, k_ntlink=k_ntlink, w_ntlink=w_ntlink, max_threads=max_threads),
             benchmarking=expand("{benchmark_path} -o {prefix}.ntLink_pair.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} ntLink pair target={input.fa} reads={input.reads} {params.options}"
@@ -69,49 +70,49 @@ rule run_ntLink_pair:
 rule run_minimap2:
     input: fa=expand("{fasta}", fasta=fasta),
            reads=expand("{reads}", reads=reads)
-    output: "{prefix}.unpolished.paf"
+    output: expand("{prefix}.unpolished.{intermediate}paf", prefix=prefix, intermediate=intermediate)
     params: options=expand("-t {max_threads}", max_threads=max_threads),
-            benchmarking=expand("{benchmark_path} -o {{prefix}}.minimap2.time", benchmark_path=benchmark_path) if benchmark else []
+            benchmarking=expand("{benchmark_path} -o {prefix}.minimap2.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} minimap2 {params.options} {input.fa} {input.reads} > {output}"
 
 rule extract_seq:
     input: fa=expand("{fasta}", fasta=fasta),
-    output: "{prefix}.gaps.fa"
-    params: options=expand("-l {length} -o {prefix}.gaps.fa", length=length, prefix=prefix),
+    output: expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate)
+    params: options=expand("-l {length}", length=length),
             path_to_script=expand("{script_path}/goldpolish-target-extract-seq.py", script_path=script_path),
-            benchmarking=expand("{benchmark_path} -o {{prefix}}.extract_seq.time", benchmark_path=benchmark_path) if benchmark else []
-    shell: "{params.benchmarking} python {params.path_to_script} -f {input.fa} {params.options}"
+            benchmarking=expand("{benchmark_path} -o {prefix}.extract_seq.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
+    shell: "{params.benchmarking} python {params.path_to_script} -f {input.fa} {params.options} -o {output}"
 
 # rule for paf file/minimap2 remapping
 rule update_mapping_paf:
-    input: gaps="{prefix}.gaps.fa",
+    input: gaps=expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate),
            mapping=rules.run_minimap2.output
-    output: "{prefix}.gaps.fa.paf"
+    output: expand("{prefix}.gaps.fa.{intermediate}paf", prefix=prefix, intermediate=intermediate)
     params: path_to_script=expand("{script_path}/goldpolish-target-update-mapping.py", script_path=script_path),
-            benchmarking=expand("{benchmark_path} -o {{prefix}}.update_mapping.time", benchmark_path=benchmark_path) if benchmark else []
+            benchmarking=expand("{benchmark_path} -o {prefix}.update_mapping.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -g {input.gaps} -m {input.mapping} -o {output}"
 
 # rule for ntlink pair remapping
 rule update_mapping_tsv:
-    input: gaps=expand("{prefix}.gaps.fa", prefix=prefix),
+    input: expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate),
            mapping=rules.run_ntLink_pair.output
-    output: expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.z1000.paf", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink)
+    output: expand("{prefix}.gaps.fa.k{k_ntlink}.w{w_ntlink}.z1000.{intermediate}paf", prefix=prefix, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate)
     params: path_to_script=expand("{script_path}/goldpolish-target-update-mapping.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {prefix}.update_mapping.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -g {input.gaps} -m {input.mapping} -o {output}"
 
 rule run_goldpolish:
     input: mapping=choose_mapping,
-           gaps="{prefix}.gaps.fa"
-    output: "{prefix}.gaps.goldpolished.fa"
+           gaps=expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate)
+    output: expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate)
     params: options=expand("-s {s} -x {x} -t {max_threads}", s=s, x=x, max_threads=max_threads),
-            benchmarking=expand("{benchmark_path} -o {{prefix}}.goldpolish.time", benchmark_path=benchmark_path) if benchmark else []
+            benchmarking=expand("{benchmark_path} -o {prefix}.goldpolish.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} goldpolish --mappings {input.mapping} {params.options} {input.gaps} {reads} {output}"
 
 rule run_post_processing:
-    input: "{prefix}.gaps.goldpolished.fa"
+    input: expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate)
     output: "{prefix}.polished.fa"
-    params: options=expand("-f {fasta} -o {prefix}.polished.fa", fasta=fasta, prefix=prefix),
+    params: options=expand("-f {fasta}", fasta=fasta),
             path_to_script=expand("{script_path}/goldpolish-target-post-processing.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.post_processing.time", benchmark_path=benchmark_path) if benchmark else []
-    shell: "{params.benchmarking} python {params.path_to_script} {params.options} -g {input}"
+    shell: "{params.benchmarking} python {params.path_to_script} {params.options} -g {input} -o {output}"

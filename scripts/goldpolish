@@ -2,6 +2,7 @@
 import argparse
 import os
 import math
+import shlex
 import subprocess as sp
 from os.path import (
     join,
@@ -155,7 +156,8 @@ def get_cli_args():
     )
     parser.add_argument(
         "--sensitive",
-        action="store_false",
+        default=True,
+        required=False,
         help="Setting for ntLink pair remapping (if --target and --ntlink specified)"
     )
     parser.add_argument(
@@ -167,6 +169,11 @@ def get_cli_args():
         "--benchmark",
         action="store_true",
         help="Specifies benchmarking for goldpolish-target (if --target specified)"
+    )
+    parser.add_argument(
+        '--target_dev',
+        action="store_true",
+        help="Keeps intermediate files (if --Target specified)"
     )
 
     args = parser.parse_args()
@@ -569,32 +576,27 @@ def polish_seqs(
     shutil.rmtree(bfs_dir, ignore_errors=True)
     btllib.log_info("Polisher done")
 
-def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, ntlink, sensitive, bed, benchmark):
+def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, ntlink, sensitive, bed, benchmark, target_dev):
+    btllib.log_info("Starting targeted polishing")
+
     if ntlink:
         mapper='--ntLink'
     else:
         mapper='--minimap2'
-    
-    if benchmark: 
-        benchmark = '--benchmark'
 
-    process = sp.Popen(
-        [
-            GOLDPOLISH_TARGET, 
-            '--fasta', fasta, 
-            '--reads', reads,
-            '--prefix', prefix,
-            '--length', str(length),
-            '-s', str(s),
-            mapper,
-            '-x', str(x),
-            '--k_ntlink', str(k),
-            '--w_ntlink', str(w),
-            '--sensitive', str(sensitive),
-            '--bed', bed,
-            benchmark
-        ]
+    command = (
+        f"{GOLDPOLISH_TARGET} --fasta {fasta} --reads {reads} --prefix {prefix} "
+        f"--length {length} -s {s} -x {x} {mapper} --k_ntlink {k} --w_ntlink {w} "
+        f"--sensitive {sensitive} "
     )
+
+    command += f"-b {bed} " if args.bed else ""
+    command += "--benchmark " if args.benchmark else ""
+    command += "--dev " if args.target_dev else ""
+
+    command = shlex.split(command)
+
+    process = sp.call(command)
     watch_process(process)
     btllib.log_info("Targeted polishing finished")
     exit(0)
@@ -624,7 +626,8 @@ if __name__ == "__main__":
             args.ntlink,
             args.sensitive,
             args.bed,
-            args.benchmark
+            args.benchmark,
+            args.target_dev
         )
 
     mapping_tool = MappingTool.NTLINK
