@@ -8,6 +8,8 @@ import os
 import shlex
 import subprocess
 import btllib
+from random import choice
+from string import ascii_uppercase
 
 def parse_args():
     """Parses Arguments passed by users via CLI"""
@@ -77,7 +79,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-b",
         "--bed",
         help="BED file specifying coordinates to polish",
         type=str,
@@ -126,10 +127,10 @@ def get_mapping_info(minimap2, ntLink):
     x_goldpolish = 150
     return (mapper, s_goldpolish, x_goldpolish)
 
-def cleanup():
+def cleanup(rand_str):
     files = [f for f in os.listdir() if os.path.isfile(f)]
     for file in files:
-        if 'INTERMEDIATE' in file:
+        if f'INTERMEDIATE_{rand_str}' in file:
             os.remove(file)
 
 def main():
@@ -141,18 +142,20 @@ def main():
         args.ntLink,
     )
 
-    target = "ntLink_target" if args.ntlink else "minimap2_target"
+    target = "ntLink_target" if args.ntLink else "minimap2_target"
 
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"{target} --config f={args.fasta} l={args.length} t={args.t} "
-        f"mapper={mapping_info[0]} b={args.bed} p={args.prefix} reads={args.reads} "
+        f"mapper={mapping_info[0]} bed={args.bed} p={args.prefix} reads={args.reads} "
         f"s={mapping_info[1]} x={mapping_info[2]} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
 
+    rand_str = ''.join(choice(ascii_uppercase) for i in range(5))
+    
     command += "benchmark=True " if args.benchmark else "benchmark=False "
-    command += "delete_intermediates=INTERMEDIATE. " if not args.dev else ""
+    command += f"delete_intermediates=INTERMEDIATE_{rand_str}. " if not args.dev else ""
 
     if args.dry_run:
         command += " -n "
@@ -168,7 +171,7 @@ def main():
         )
     
     if not args.dev:
-        cleanup()
+        cleanup(rand_str)
 
 if __name__ == "__main__":
     main()

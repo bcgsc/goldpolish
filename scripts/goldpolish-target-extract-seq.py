@@ -152,7 +152,7 @@ def main():
     writer_fasta = btllib.SeqWriter(args.output, btllib.SeqWriter.FASTA)
 
     # makes coordinate dictionary if bed file provided
-    if args.bed:
+    if args.bed != "":
         coord_dict = make_coord_dict(args.bed)
 
     # loop through sequences in fasta file

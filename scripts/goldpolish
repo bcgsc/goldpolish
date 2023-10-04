@@ -158,7 +158,7 @@ def get_cli_args():
         "--sensitive",
         default=True,
         required=False,
-        help="Setting for ntLink pair remapping (if --target and --ntlink specified)"
+        help=argparse.SUPPRESS
     )
     parser.add_argument(
         "--bed",
@@ -168,7 +168,7 @@ def get_cli_args():
     parser.add_argument(
         "--benchmark",
         action="store_true",
-        help="Specifies benchmarking for goldpolish-target (if --target specified)"
+        help=argparse.SUPPRESS
     )
     parser.add_argument(
         '--target_dev',
@@ -576,7 +576,7 @@ def polish_seqs(
     shutil.rmtree(bfs_dir, ignore_errors=True)
     btllib.log_info("Polisher done")
 
-def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, ntlink, sensitive, bed, benchmark, target_dev):
+def run_goldpolish_target(fasta, reads, prefix, length, k, w, ntlink, sensitive, bed, benchmark, target_dev):
     btllib.log_info("Starting targeted polishing")
 
     if ntlink:
@@ -586,13 +586,13 @@ def run_goldpolish_target(fasta, reads, prefix, length, k, w, s, x, ntlink, sens
 
     command = (
         f"{GOLDPOLISH_TARGET} --fasta {fasta} --reads {reads} --prefix {prefix} "
-        f"--length {length} -s {s} -x {x} {mapper} --k_ntlink {k} --w_ntlink {w} "
+        f"--length {length} {mapper} --k_ntlink {k} --w_ntlink {w} "
         f"--sensitive {sensitive} "
     )
 
-    command += f"-b {bed} " if args.bed else ""
-    command += "--benchmark " if args.benchmark else ""
-    command += "--dev " if args.target_dev else ""
+    command += f"--bed {bed} " if bed else ""
+    command += "--benchmark " if benchmark else ""
+    command += "--dev " if target_dev else ""
 
     command = shlex.split(command)
 
@@ -621,8 +621,6 @@ if __name__ == "__main__":
             args.length,
             args.k_ntlink,
             args.w_ntlink,
-            args.subsample_max_reads_per_10kbp,
-            args.mx_max_reads_per_10kbp,
             args.ntlink,
             args.sensitive,
             args.bed,
