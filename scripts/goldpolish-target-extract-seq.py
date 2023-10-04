@@ -13,7 +13,6 @@ def parse_args():
         "-f", "--fasta", help="target file in fasta format", type=str, required=True
     )
     parser.add_argument(
-        "-b",
         "--bed",
         help="bed file specifying regions to polish",
         type=str,
