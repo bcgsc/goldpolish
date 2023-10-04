@@ -77,4 +77,15 @@ optional arguments:
   --ntlink              Run ntLink to generate read mappings (default).
   --minimap2            Run minimap2 to generate read mappings.
   --mappings MAPPINGS   Use provided pre-generated mappings. Accepted formats are PAF, SAM, and *.verbose_mapping.tsv from ntLink.
+  --target              Run GoldPolish in targeted mode
+  -l LENGTH, --length LENGTH
+                        GoldPolish-Target flank length (if --target specified)
+  --bed BED             BED file specifying target coordinates (if --target specified)
+  --softmask            Target coordinates determined from softmasked regions in the input assembly (if --target specified)
 ```
+
+## GoldPolish-Target
+GoldPolish can be run in a targeted mode, polishing only fragments of the assembly (either by looking for and polishing softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command. Example command running GoldPolish-Target with a BED file:
+```
+goldpolish --target --bed my_bed_file.bed assembly.fa reads.fa assembly-polished.fa
+```  
