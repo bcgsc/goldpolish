@@ -93,64 +93,6 @@ def make_interval_tree(tree_dict, args):
             populate_trees(tree_dict, seq_name, seq_interval)
         return tree_dict
 
-#NOT EVER RUN RIGHT NOW
-""" def read_mapping_suffix(args):
-    "Determines if mapping file is ntLink verbose mapping or paf"
-    if "verbose_mapping" in args.mapping and "tsv" in args.mapping:
-        verbose = True
-    elif "paf" in args.mapping:
-        verbose = False
-    else:
-        raise ValueError("Mapping file must either be verbose_mapping file or paf file")
-    return verbose
-
-def update_verbose_mapping_file(args, tree_dict):
-    "Updates ntLink verbose mapping file based on new coordinate system"
-    with open(args.mapping, encoding="utf-8") as f_in, open(
-        args.output, "w", encoding="utf-8"
-    ) as f_out:
-        writer = csv.writer(f_out, delimiter="\t")
-        reader = csv.reader(f_in, delimiter="\t", quotechar='"')
-        # iterates through all reads in the verbose mapping file
-        for row in reader:
-            contig_name = row[1]
-            all_mimimizers = row[3].split(" ")
-            update_row = False
-
-            # if the contig is in the tree dictionary, checks for mapped minimizers within gap
-            if contig_name in tree_dict:
-                tree = tree_dict[contig_name]
-                new_minimizers = {}
-
-                # iterates through each mapped minimizer for the read
-                for minimizer in all_mimimizers:
-                    minimizer_details = minimizer.split(":")
-                    position = int(minimizer_details[0])  # position of mapped minimizer
-
-                    pos = list(tree.at(position))
-                    # if minimizers are mapped to gap sequence, updates position
-                    if pos:
-                        update_row = True  # update row in df
-                        seq_interval = pos[0]
-                        gap_name = pos[0].data
-
-                        # updating position for the minimizer
-                        seq_start = seq_interval.begin
-                        minimizer_details[0] = str(position - seq_start)
-                        minimizer_details = ":".join(minimizer_details)
-
-                        new_minimizers.setdefault(gap_name, []).append(minimizer_details)
-
-                if update_row:
-                    for gap in new_minimizers.keys():
-                        gap_info = new_minimizers[gap]
-                        temp_row = row
-                        temp_row[1] = gap
-                        temp_row[2] = len(gap_info)
-                        temp_row[3] = " ".join(gap_info)
-                        writer.writerow(temp_row) """
-
-
 def update_paf_file(args, tree_dict):
     "Updates paf file based on new coordinate system"
     with open(args.mapping, encoding="utf-8") as f_in, open(
