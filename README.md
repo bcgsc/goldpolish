@@ -16,7 +16,7 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
 - Run
   * GNU Make
   * Python 3
-  * [btllib](https://github.com/bcgsc/btllib) v1.4.3+
+  * [btllib](https://github.com/bcgsc/btllib) v1.6.2+
   * [ntLink](https://github.com/bcgsc/ntlink) v1.3.5+
   * [minimap2](https://github.com/lh3/minimap2)
 
