@@ -582,13 +582,13 @@ def polish_seqs(
     shutil.rmtree(bfs_dir, ignore_errors=True)
     btllib.log_info("Polisher done")
 
-def run_goldpolish_target(fasta, reads, prefix, length, k, w, ntlink, sensitive, bed, benchmark, target_dev):
+def run_goldpolish_target(fasta, reads, prefix, length, k, w, minimap2, sensitive, bed, benchmark, target_dev):
     btllib.log_info("Starting targeted polishing")
 
-    if ntlink:
-        mapper='--ntLink'
-    else:
+    if minimap2:
         mapper='--minimap2'
+    else:
+        mapper='--ntLink'
 
     command = (
         f"{GOLDPOLISH_TARGET} --fasta {fasta} --reads {reads} --prefix {prefix} "
@@ -626,7 +626,7 @@ if __name__ == "__main__":
             args.length,
             args.k_ntlink,
             args.w_ntlink,
-            args.ntlink,
+            args.minimap2,
             args.sensitive,
             args.bed,
             args.benchmark,
