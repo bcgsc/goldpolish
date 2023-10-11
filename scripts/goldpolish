@@ -602,8 +602,7 @@ def run_goldpolish_target(fasta, reads, prefix, length, k, w, ntlink, sensitive,
 
     command = shlex.split(command)
 
-    process = sp.call(command)
-    watch_process(process)
+    sp.call(command)
     btllib.log_info("Targeted polishing finished")
     exit(0)
 

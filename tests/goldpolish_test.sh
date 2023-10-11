@@ -10,14 +10,10 @@ echo "Launching GoldPolish"
 
 goldpolish goldrush_test_golden_path.fa test_reads.fq goldrush_test_golden_path.goldpolish-polished.fa
 
-lines_pre_polish=$(wc -l goldrush_test_golden_path.fa |awk '{print $1}')
-lines_post_polish=$(wc -l goldrush_test_golden_path.goldpolish-polished.fa |awk '{print $1}')
-
-if [ ${lines_pre_polish} -eq ${lines_post_polish} ]; then
+if cmp --silent -- goldrush_test_golden_path.goldpolish-polished.fa goldrush_test_golden_path.goldpolish-polished_expected.fa; then
   echo "Test successful"
 else
-  echo "Final polishing file is missing sequences - please check your installation"
-  exit 1
+  echo "Final polishing file doesn't match expected result - please check your installation"
 fi
 
 exit 0
