@@ -79,6 +79,7 @@ def parse_args():
     )
 
     parser.add_argument(
+        "-b",
         "--bed",
         help="BED file specifying coordinates to polish",
         type=str,
@@ -167,7 +168,6 @@ def main():
         raise subprocess.SubprocessError(
             "GoldPolish-Target failed - check the logs for the error."
         )
-    
     if not args.dev:
         cleanup(rand_str)
 

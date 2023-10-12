@@ -13,6 +13,7 @@ def parse_args():
         "-f", "--fasta", help="target file in fasta format", type=str, required=True
     )
     parser.add_argument(
+        "-b",
         "--bed",
         help="bed file specifying regions to polish",
         type=str,
@@ -151,7 +152,7 @@ def main():
     writer_fasta = btllib.SeqWriter(args.output, btllib.SeqWriter.FASTA)
 
     # makes coordinate dictionary if bed file provided
-    if args.bed != "":
+    if args.bed:
         coord_dict = make_coord_dict(args.bed)
 
     # loop through sequences in fasta file
@@ -162,7 +163,7 @@ def main():
                 extract_masked_subsequences(
                     seq, seq_name, int(args.length), writer_fasta
                 )
-            else:
+            else: 
                 if seq_name in coord_dict:
                     extract_subsequences_from_bed(
                         seq, seq_name, int(args.length), writer_fasta, coord_dict
