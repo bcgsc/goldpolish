@@ -86,7 +86,7 @@ jobs:
       meson build --prefix=$(pwd)/test_build
       cd build
       ninja install
-      ../test_build/bin/goldpolish-target.py --help
+      ../test_build/bin/goldpolish --help
     displayName: Compile GoldPolish-Target
   - script: |
       source activate goldpolish_target_CI
@@ -118,7 +118,7 @@ jobs:
         meson build --prefix=$(pwd)/test_build
         cd build
         ninja install
-        ../test_build/bin/goldpolish_target.py --help
+        ../test_build/bin/goldpolish --help
       displayName: Compile GoldPolish-Target
     - script: |
         source activate goldpolish_target_CI
