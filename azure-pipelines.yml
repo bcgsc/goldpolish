@@ -92,7 +92,6 @@ jobs:
       source activate goldpolish_target_CI
       export PATH=$(pwd)/test_build/bin:$PATH
       cd tests
-      chmod u+x goldpolish_target_test.sh
       ./goldpolish_target_test.sh
     displayName: Test run for GoldPolish-Target
 
@@ -125,6 +124,5 @@ jobs:
         source activate goldpolish_target_CI
         export PATH=$(pwd)/test_build/bin:$PATH
         cd tests
-        chmod u+x goldpolish_target_test.sh
         ./goldpolish_target_test.sh
       displayName: Test run for GoldPolish-target
