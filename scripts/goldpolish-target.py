@@ -143,11 +143,15 @@ def main():
         args.ntLink,
     )
 
+    mapper=mapping_info[0]
+    s=mapping_info[1]
+    x=mapping_info[2]
+
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"target --config f={args.fasta} l={args.length} t={args.t} "
-        f"mapper={mapping_info[0]} bed={args.bed} p={args.prefix} reads={args.reads} "
-        f"s={mapping_info[1]} x={mapping_info[2]} sensitive={args.sensitive} "
+        f"mapper={mapper} bed={args.bed} p={args.prefix} reads={args.reads} "
+        f"s={s} x={x} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
 

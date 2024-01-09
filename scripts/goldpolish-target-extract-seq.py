@@ -6,6 +6,14 @@ import re
 import btllib
 
 
+class Coordinate:
+    """Represents start and end positions of a subsequence"""
+
+    def __init__(self, coord):
+        self.start = coord[0]
+        self.end = coord[1]
+
+
 def parse_args():
     """Parses arguments passed in command line"""
     parser = argparse.ArgumentParser()
@@ -51,43 +59,44 @@ def make_coord_dict(bed):
             end = row[2]
 
             if contig_name not in coord_dict_2:
-                coords = []
-
-            coords.append((start, end))
-            coord_dict_2[contig_name] = coords
+                coord_dict_2[contig_name] = [(start, end)]
+            else:
+                coord_dict_2[contig_name].append((start, end))
     return coord_dict_2
 
 
 def extract_masked_subsequences(sequence, name, length, writer):
     """extracts lowercase sequences and returns list of sequences with l bp long flanking regions"""
     gap_count = 1
-    idx = 1
+    idx = 1  # index of subseqs
 
     subseqs = re.findall(r"([A-Z]+|[a-z]+)", sequence)
+    filtered_subseqs = (
+        []
+    )  # short uppercase seqs are appended to adjacent softmasked seqs
+    filtered_subseqs.append(
+        subseqs[0]
+    )  # first item always appended, avoids 0-index issues
 
     while idx < len(subseqs):
         subseq = subseqs[idx]
-        if subseq and subseq.isupper() and len(subseq) < 2 * length:
-            first_subseq = subseqs[idx - 1] if idx > 0 and subseqs[idx - 1] else ""
-            second_subseq = (
-                subseqs[idx + 1] if idx < len(subseqs) - 1 and subseqs[idx + 1] else ""
-            )
-            updated_subseq = first_subseq + subseq.lower() + second_subseq
-
-            subseqs = (
-                subseqs[: idx - 1]
-                + [None]
-                + [None]
-                + [updated_subseq]
-                + subseqs[idx + 2 :]
-            )
-            idx += 1
+        if subseq.isupper():
+            if len(subseq) >= 2 * length:  # surpases min length threshold
+                filtered_subseqs.append(subseq)
+            elif filtered_subseqs[-1].islower():
+                # append lower case subseq to previous subseq
+                filtered_subseqs[-1] = filtered_subseqs[-1] + subseq.lower()
+        else:  # subseq is lower
+            if filtered_subseqs[-1].isupper():
+                filtered_subseqs.append(subseq)
+            else:
+                # previous subseq is lower, need to concat with prev
+                filtered_subseqs[-1] = filtered_subseqs[-1] + subseq
         idx += 1
-    # getting rid of old indices added in last step
-    subseqs = filter(None, subseqs)
+        
     idx = 0
 
-    for subseq in subseqs:
+    for subseq in filtered_subseqs:
         if subseq.islower() and len(subseq) > 1:
             flank_start = max(0, idx - length)
             flank_end = min(len(sequence), idx + len(subseq) + length)
@@ -110,27 +119,28 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
     if name in coords:
         count = 0
         coord_list = coords[name]
-        idx = 0
+        idx = 1
 
-        while idx < len(coord_list) - 1:
-            # distance between coords of seqs to be extracted
-            inter_seq_len = int(coord_list[idx + 1][0]) - int(coord_list[idx][1])
-            if inter_seq_len < 2 * length:
-                start = coord_list[idx][0]
-                end = coord_list[idx + 1][1]
+        filtered_coords = (
+            []
+        )  # short uppercase seqs are appended to adjacent coordinates
+        filtered_coords.append(
+            coord_list[0]
+        )  # first item always appended, avoids 0-index issues
 
-                list_before_index = coord_list[:idx] if idx > 0 else []
-                list_after_index = (
-                    coord_list[idx + 2 :] if idx < len(coord_list) + 2 else []
-                )
-                coord_list = (
-                    list_before_index + [None] + [(start, end)] + list_after_index
-                )
+        while idx < len(coord_list):
+            coord = Coordinate(coord_list[idx])
+            prev_coord = Coordinate(filtered_coords[-1])
+
+            if (
+                int(coord.start) - int(prev_coord.end)
+            ) < 2 * length:  # length between adjacent coords too small
+                filtered_coords[-1] = (prev_coord.start, coord.end)
+            else:
+                filtered_coords.append(coord_list[idx])
             idx += 1
 
-        coord_list = filter(None, coord_list)
-
-        for coord in coord_list:
+        for coord in filtered_coords:
             start = max(0, int(coord[0]) - length)
             end = min(len(sequence), int(coord[1]) + length)
 
@@ -163,13 +173,14 @@ def main():
                 extract_masked_subsequences(
                     seq, seq_name, int(args.length), writer_fasta
                 )
-            else: 
+            else:
                 if seq_name in coord_dict:
                     extract_subsequences_from_bed(
                         seq, seq_name, int(args.length), writer_fasta, coord_dict
                     )
 
     writer_fasta.close()
+
 
 if __name__ == "__main__":
     main()
