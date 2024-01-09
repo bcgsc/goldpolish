@@ -15,7 +15,7 @@ jobs:
   - script: |
       source activate goldpolish_CI
       conda install --yes -c conda-forge mamba python=3.9
-      mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib
+      mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib
     displayName: Install dependencies
   - script: |
       source activate goldpolish_CI
@@ -47,7 +47,7 @@ jobs:
     - script: |
         source activate goldpolish_CI
         conda install --yes -c conda-forge mamba python=3.9
-        mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib llvm
+        mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm
       displayName: Install dependencies
     - script: |
         source activate goldpolish_CI
@@ -79,14 +79,14 @@ jobs:
   - script: |
       source activate goldpolish_target_CI
       conda install --yes -c conda-forge mamba python=3.9
-      mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib snakemake
+      mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib snakemake
     displayName: Install dependencies
   - script: |
       source activate goldpolish_target_CI
       meson build --prefix=$(pwd)/test_build
       cd build
       ninja install
-      ../test_build/bin/goldpolish-target --help
+      ../test_build/bin/goldpolish-target.py --help
     displayName: Compile GoldPolish-Target
   - script: |
       source activate goldpolish_target_CI
@@ -111,14 +111,14 @@ jobs:
     - script: |
         source activate goldpolish_target_CI
         conda install --yes -c conda-forge mamba python=3.9
-        mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib llvm snakemake
+        mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm snakemake
       displayName: Install dependencies
     - script: |
         source activate goldpolish_target_CI
         meson build --prefix=$(pwd)/test_build
         cd build
         ninja install
-        ../test_build/bin/goldpolish_target --help
+        ../test_build/bin/goldpolish_target.py --help
       displayName: Compile GoldPolish-Target
     - script: |
         source activate goldpolish_target_CI

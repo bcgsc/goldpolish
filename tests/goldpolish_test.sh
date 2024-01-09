@@ -10,7 +10,7 @@ echo "Launching GoldPolish"
 
 goldpolish goldrush_test_golden_path.fa test_reads.fq goldrush_test_golden_path.goldpolish-polished.fa
 
-if cmp --silent -- goldrush_test_golden_path.goldpolish-polished.fa /expected_files/goldrush_test_golden_path.goldpolish-polished_expected.fa; then
+if cmp --silent -- goldrush_test_golden_path.goldpolish-polished.fa $(pwd)/expected_files/goldrush_test_golden_path.goldpolish-polished_expected.fa; then
   echo "Test successful"
 else
   echo "Final polishing file doesn't match expected result - please check your installation"
