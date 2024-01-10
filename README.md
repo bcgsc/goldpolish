@@ -20,6 +20,7 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
   * [ntLink](https://github.com/bcgsc/ntlink) v1.3.5+
   * [minimap2](https://github.com/lh3/minimap2)
   * [snakemake](https://github.com/snakemake/snakemake)
+  * [intervaltree] ( https://github.com/chaimleib/intervaltree) 
 
 The dependencies can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
