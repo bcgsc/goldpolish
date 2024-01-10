@@ -143,9 +143,7 @@ def main():
         args.ntLink,
     )
 
-    mapper=mapping_info[0]
-    s=mapping_info[1]
-    x=mapping_info[2]
+    mapper, s, x = mapping_info[:3]
 
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "

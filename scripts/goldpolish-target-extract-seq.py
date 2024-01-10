@@ -42,18 +42,18 @@ def parse_args():
 def make_coord_dict(bed):
     """Creates a dictionary of tuples representing regions to polish"""
     coord_dict_2 = {}
+    Coordinate = namedtuple("Coordinate", "start end")
 
     with open(bed, encoding="utf-8") as bed_file:
         bed_reader = csv.reader(bed_file, delimiter="\t", quotechar='"')
         for row in bed_reader:
             contig_name = row[0]
-            start = row[1]
-            end = row[2]
+            coord = Coordinate(row[1], row[2])
 
             if contig_name not in coord_dict_2:
-                coord_dict_2[contig_name] = [(start, end)]
+                coord_dict_2[contig_name] = [coord]
             else:
-                coord_dict_2[contig_name].append((start, end))
+                coord_dict_2[contig_name].append(coord)
     return coord_dict_2
 
 
@@ -112,6 +112,7 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
         count = 0
         coord_list = coords[name]
         idx = 1
+        Coordinate = namedtuple("Coordinate", "start end")
 
         filtered_coords = (
             []
@@ -121,8 +122,7 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
         )  # first item always appended, avoids 0-index issues
 
         while idx < len(coord_list):
-            Coordinate = namedtuple("Coordinate", "start end")
-            coord = Coordinate(coord_list[idx])
+            coord = Coordinate(*coord_list[idx])
             prev_coord = Coordinate(filtered_coords[-1])
 
             if (
