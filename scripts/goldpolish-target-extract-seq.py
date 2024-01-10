@@ -4,15 +4,7 @@ import argparse
 import csv
 import re
 import btllib
-
-
-class Coordinate:
-    """Represents start and end positions of a subsequence"""
-
-    def __init__(self, coord):
-        self.start = coord[0]
-        self.end = coord[1]
-
+from collections import namedtuple
 
 def parse_args():
     """Parses arguments passed in command line"""
@@ -129,6 +121,7 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
         )  # first item always appended, avoids 0-index issues
 
         while idx < len(coord_list):
+            Coordinate = namedtuple("Coordinate", "start end")
             coord = Coordinate(coord_list[idx])
             prev_coord = Coordinate(filtered_coords[-1])
 
