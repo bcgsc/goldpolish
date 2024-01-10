@@ -123,7 +123,7 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
 
         while idx < len(coord_list):
             coord = Coordinate(*coord_list[idx])
-            prev_coord = Coordinate(filtered_coords[-1])
+            prev_coord = Coordinate(*filtered_coords[-1])
 
             if (
                 int(coord.start) - int(prev_coord.end)
