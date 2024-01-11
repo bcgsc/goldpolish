@@ -79,6 +79,7 @@ def parse_args():
     )
 
     parser.add_argument(
+        "-b",
         "--bed",
         help="BED file specifying coordinates to polish",
         type=str,
@@ -142,11 +143,13 @@ def main():
         args.ntLink,
     )
 
+    mapper, s, x = mapping_info[:3]
+
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"target --config f={args.fasta} l={args.length} t={args.t} "
-        f"mapper={mapping_info[0]} bed={args.bed} p={args.prefix} reads={args.reads} "
-        f"s={mapping_info[1]} x={mapping_info[2]} sensitive={args.sensitive} "
+        f"mapper={mapper} bed={args.bed} p={args.prefix} reads={args.reads} "
+        f"s={s} x={x} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
 
@@ -167,7 +170,6 @@ def main():
         raise subprocess.SubprocessError(
             "GoldPolish-Target failed - check the logs for the error."
         )
-    
     if not args.dev:
         cleanup(rand_str)
 
