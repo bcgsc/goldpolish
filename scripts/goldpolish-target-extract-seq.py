@@ -6,6 +6,8 @@ import re
 import btllib
 from collections import namedtuple
 
+Coordinate = namedtuple("Coordinate", "start end")
+
 def parse_args():
     """Parses arguments passed in command line"""
     parser = argparse.ArgumentParser()
@@ -42,7 +44,6 @@ def parse_args():
 def make_coord_dict(bed):
     """Creates a dictionary of tuples representing regions to polish"""
     coord_dict_2 = {}
-    Coordinate = namedtuple("Coordinate", "start end")
 
     with open(bed, encoding="utf-8") as bed_file:
         bed_reader = csv.reader(bed_file, delimiter="\t", quotechar='"')
@@ -112,7 +113,6 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
         count = 0
         coord_list = coords[name]
         idx = 1
-        Coordinate = namedtuple("Coordinate", "start end")
 
         filtered_coords = (
             []
