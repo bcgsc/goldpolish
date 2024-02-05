@@ -23,7 +23,7 @@ max_threads = config["t"] if "t" in config else 48
 benchmark = config["benchmark"] if "benchmark" in config else False
 
 sensitive = config["sensitive"] if "sensitive" in config else True
-intermediate = config["delete_intermediates"] if "delete_intermediates" in config else 'intermediate.'
+intermediate = config["delete_intermediates"] if "delete_intermediates" in config else 'i.'
 
 # If want to benchmark, use memusg or /usr/bin/time
 benchmark_path = "" 
@@ -63,7 +63,7 @@ rule update_ntLink_pair_output_name:
            dot=rules.run_ntLink_pair.output.dot
     output: paf=expand("{prefix}.unpolished.ntLink.{intermediate}paf", prefix=prefix, intermediate=intermediate),
             verbose_mapping=expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.verbose_mapping.{intermediate}tsv", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate),
-            tsv=expand("{fasta}.k{k_ntlink}.w{w_ntlink}.tsv.{intermediate}", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate),
+            tsv=expand("{fasta}.k{k_ntlink}.w{w_ntlink}.{intermediate}tsv", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate),
             dot=expand("{fasta}.k{k_ntlink}.w{w_ntlink}.z1000.n1.scaffold.{intermediate}dot", fasta=fasta, k_ntlink=k_ntlink, w_ntlink=w_ntlink, intermediate=intermediate)
     shell: "mv {input.paf} {output.paf} && mv {input.verbose_mapping} {output.verbose_mapping} && mv {input.tsv} {output.tsv} && mv {input.dot} {output.dot}"
 
@@ -78,7 +78,7 @@ rule run_minimap2:
 rule extract_seq:
     input: fa=expand("{fasta}", fasta=fasta),
     output: expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate)
-    params: options=expand("-l {length} --bed {bed}", length=length, bed=bed),
+    params: options=expand("-l {length} --bed {bed}", length=length, bed=bed) if bed else expand("-l {length}", length=length),
             path_to_script=expand("{script_path}/goldpolish-target-extract-seq.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {prefix}.extract_seq.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} python {params.path_to_script} -f {input.fa} {params.options} -o {output}"
