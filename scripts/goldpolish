@@ -133,13 +133,13 @@ def get_cli_args():
     parser.add_argument(
         "--k-ntlink",
         type=int,
-        default=32,
+        default=88,
         help="k-mer size used for ntLink mappings (if --ntlink specified)",
     )
     parser.add_argument(
         "--w-ntlink",
         type=int,
-        default=100,
+        default=1000,
         help="Window size used for ntLink mappings (if --ntlink specified)",
     )
     parser.add_argument(

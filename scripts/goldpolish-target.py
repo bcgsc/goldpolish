@@ -63,13 +63,13 @@ def parse_args():
         "--k_ntlink",
         help="k-mer size used for ntLink mappings (if --ntlink specified)",
         type=int,
-        default=32,
+        default=88,
     )
     parser.add_argument(
         "--w_ntlink",
         help="Window size used for ntLink mappings (if --ntlink specified)",
         type=int,
-        default=100,
+        default=1000,
     )
     parser.add_argument(
         "--sensitive", 
