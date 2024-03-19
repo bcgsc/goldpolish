@@ -174,6 +174,5 @@ def main():
 
     writer_fasta.close()
 
-
 if __name__ == "__main__":
     main()

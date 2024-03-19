@@ -81,13 +81,15 @@ optional arguments:
   --mappings MAPPINGS   Use provided pre-generated mappings. Accepted formats are PAF, SAM, and *.verbose_mapping.tsv from ntLink.
   --target              Run GoldPolish in targeted mode
   -l LENGTH, --length LENGTH
-                        GoldPolish-Target flank length (if --target specified)
+                        GoldPolish-Target flank length (if --target specified) (Default: 64)
   --bed BED             BED file specifying target coordinates (if --target specified)
   --softmask            Target coordinates determined from softmasked regions in the input assembly (if --target specified)
+  --k_ntlink            k-mer size used for ntLink mappings (if --ntlink specified) (Default: 88)
+  --w_ntlink            Window size used for ntLink mappings (if --ntlink specified) (Default: 1000)
 ```
 
 ## GoldPolish-Target
-GoldPolish can be run in a targeted mode, polishing only fragments of the assembly (either by looking for and polishing softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command. Example command running GoldPolish-Target with a BED file:
+GoldPolish can be run in a targeted mode, polishing only fragments of the assembly (either by looking for and polishing softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command. Example command that runs GoldPolish-Target with a BED file to specify target regions:
 ```
 goldpolish --target --bed polishing_coordinates.bed assembly.fa reads.fa assembly-polished.fa 
 ```  

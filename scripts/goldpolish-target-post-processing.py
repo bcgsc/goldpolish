@@ -35,6 +35,7 @@ def insert_seq(gap_coords, sequence):
     start = 0
     updated_seq = []
 
+    # reading gap names to get coordinates
     for gap in gap_coords:
         gap_start = gap[1]
         gap_end = gap[2]
@@ -44,6 +45,7 @@ def insert_seq(gap_coords, sequence):
         updated_seq.append(gap_sequence)
         start = int(gap_end)
 
+    # just to check
     if start < len(sequence) - 1:
         updated_seq.append(sequence[int(start) + 1 :])
     return "".join(updated_seq)

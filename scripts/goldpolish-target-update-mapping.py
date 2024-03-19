@@ -125,26 +125,24 @@ def update_paf_file(args, tree_dict):
                     gap_start = seq_interval.begin
                     gap_end = seq_interval.end
 
-                    # updating positions
                     new_row.target_name = gap_name
-
+                    # query start and end unchanged
                     if gap_start < start_pos and gap_end > end_pos:
                         new_row.target_start = start_pos - gap_start
                         new_row.target_end = end_pos - gap_start
-
-                        # query start and end unchanged
+                    # query end updated
                     elif gap_start < start_pos and gap_end <= end_pos:
                         new_row.target_start = start_pos - gap_start
                         new_row.target_end = gap_end - gap_start
 
                         new_row.query_end = query_end - (end_pos - gap_end)
-                        # query start unchanged
+                    # query start updated
                     elif gap_start >= start_pos and gap_end > end_pos:
                         new_row.target_start = 0
                         new_row.target_end = end_pos - gap_start
 
                         new_row.query_start = query_start + (gap_start - start_pos)
-                        # query end unchanged
+                    # query start and end updated
                     else:
                         new_row.target_start = 0
                         new_row.target_end = gap_end - gap_start
@@ -165,8 +163,6 @@ def main():
     # makes tree dictionary with contig names
     tree_dict = {}
     trees = make_interval_tree(tree_dict, args)
-    #verbose = read_mapping_suffix(args)
-    # update_verbose_mapping_file(args, trees
 
     if "paf" in args.mapping:
         update_paf_file(args, trees)
