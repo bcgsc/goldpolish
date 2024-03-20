@@ -947,20 +947,17 @@ roll(
     unsigned char& charOut,
     unsigned char& charIn)
 {
-	std::cerr << "Starting roll" << std::endl;
 	// quit if h_seq_i is out of scope
 	if (h_seq_i >= contigSeq.size() || h_node_index >= newSeq.size()) {
 		return false;
 	}
 	charOut = getCharacter(h_seq_i, newSeq[h_node_index], contigSeq);
 	increment(h_seq_i, h_node_index, newSeq);
-	std::cerr << "roll: after increment" << std::endl;
+
 	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
 		return false;
 	}
-	std::cerr << "t_seq_i " << t_seq_i << "; contigSeq " << contigSeq.size() << "; t_node_index " << t_node_index << "; NewSeq" << newSeq.size() << std::endl;
 	increment(t_seq_i, t_node_index, newSeq);
-	std::cerr << "roll: after increment 2" << std::endl;
 	// quit if t_seq_i is out of scope
 	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
 		return false;
@@ -995,7 +992,6 @@ makeEdit(
     std::string& contigSeq,
     std::vector<seqNode>& newSeq)
 {
-	std::cerr << "In makeEdit" << std::endl;
 	bool skipped_repeat = false;
 	std::string prev_insertion;
 	// make our edit
@@ -1173,7 +1169,6 @@ tryDeletion(
     btllib::KmerBloomFilter& bloomrep,
     std::string& deleted_bases)
 {
-	std::cerr << "Starting tryDeletion" << std::endl;
 	// set temporary values
 	uint64_t temp_fhVal = fhVal;
 	uint64_t temp_rhVal = rhVal;
@@ -1189,7 +1184,6 @@ tryDeletion(
 		deleted_bases += getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq);
 		increment(temp_t_seq_i, temp_t_node_index, newSeq);
 	}
-	std::cerr << "Done making deletion" << std::endl;
 	NTMC64_changelast(
 	    draft_char,
 	    getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq),
@@ -1200,14 +1194,11 @@ tryDeletion(
 	    hVal);
 
 	// verify the deletion with a subset
-	std::cerr << "verifying deletion" << std::endl;
 	unsigned check_present = 0;
 	if (bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
 		check_present++; // check for changing the kmer after deletion
 	}
-	std::cerr << "Starting roll" << std::endl;
 	for (unsigned k = 1; k <= (opt::k - 2) && temp_h_seq_i < contigSeq.size(); k++) {
-		std::cerr << "In roll " << k << std::endl;
 		if (roll(
 		        temp_h_seq_i,
 		        temp_t_seq_i,
@@ -1217,20 +1208,17 @@ tryDeletion(
 		        newSeq,
 		        charOut,
 		        charIn)) {
-			std::cerr << "In roll if" << std::endl;
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
 			    (!opt::secbf || !bloomrep.contains(hVal))) {
 				check_present++;
 			}
 		}
-		std::cerr << "After if " << std::endl;
 	}
 	if (opt::verbose) {
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present
 		          << std::endl;
 	}
-	std::cerr << "Done verbose for deletion" << std::endl;
 	if ((!opt::use_ratio &&
 	     static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) ||
 	    (opt::use_ratio &&
@@ -1279,7 +1267,6 @@ tryIndels(
 	unsigned temp_best_edit_type = 0;
 	unsigned char charIn;
 	unsigned char charOut;
-	std::cerr << "In TryIndels" << std::endl;
 	// try all of the combinations of indels starting with our index_char
 	for (int i = 0; i < num_tries[opt::max_insertions]; i++) {
 		// gather the insertion bases
@@ -1315,7 +1302,6 @@ tryIndels(
 			}
 		}
 		// check subset after insertion
-		std::cerr << "Checking subset after insertion" << std::endl;
 		for (; k < opt::k - 1 && temp_h_seq_i < contigSeq.size(); k++) {
 			if (roll(
 			        temp_h_seq_i,
@@ -1339,7 +1325,6 @@ tryIndels(
 			          << std::endl;
 		}
 		// if the insertion is good, store the insertion accordingly RLW
-		std::cerr << "If insert good, store" << std::endl;
 		if ((!opt::use_ratio && static_cast<float>(check_present) >=
 		                            (static_cast<float>(opt::k) / opt::edit_threshold)) ||
 		    (opt::use_ratio &&
@@ -1365,7 +1350,6 @@ tryIndels(
 				}
 			}
 		}
-		std::cerr << "Try deletion" << std::endl;
 		if (num_deletions <= opt::max_deletions) {
 			std::string deleted_bases;
 			unsigned del_support = tryDeletion(
@@ -1383,7 +1367,6 @@ tryIndels(
 			    bloom,
 			    bloomrep,
 			    deleted_bases);
-			std::cerr << "After del_support" << std::endl;
 			if (del_support > 0) {
 				if (opt::mode == 0) {
 					best_edit_type = 3;
@@ -1408,7 +1391,6 @@ tryIndels(
 	}
 
 	// report the best indel info
-	std::cerr << "Reporting best indel info" << std::endl;
 	if (temp_best_num_support > 0) {
 		if ((opt::mode == 2 && temp_best_num_support > best_num_support) || opt::mode == 1) {
 			best_edit_type = temp_best_edit_type;
@@ -1568,7 +1550,6 @@ kmerizeAndCorrect(
 				}
 
 				// try substitution
-				std::cerr << "Trying substitution:" << std::endl;
 				for (const unsigned char sub_base : current_bases_array[draft_char]) {
 					// reset the temporary values
 					temp_fhVal = fhVal;
@@ -1696,7 +1677,6 @@ kmerizeAndCorrect(
 						}
 						// if we are exhaustively trying all edit combinations or
 						// 	havent found a good substitution yet, then try indels
-						std::cerr << "Trying indels" << std::endl;
 						if (opt::mode == 2 || best_edit_type != 1) {
 							if (tryIndels(
 							        draft_char,
@@ -1789,28 +1769,21 @@ void
 readAndCorrect(btllib::KmerBloomFilter& bloom, btllib::KmerBloomFilter& bloomrep)
 {
 	// read file handle
-	std::cerr << "Starting readAndCorrect" << std::endl;
 	gzFile dfp;
 	dfp = gzopen(opt::draft_filename.c_str(), "r");
-	std::cerr << "Opening draft filename" << std::endl;
 	kseq_t* seq = kseq_init(dfp);
-        std::cerr << "kseq_t" << std::endl;
 	int num_contigs = 0;
 	//constexpr int print_step_size = 1000000;
 
 	// outfile handles
-	std::cerr << "Before output file handles" << std::endl;
 	std::string d_filename = opt::outfile_prefix + "_edited.fa";
 	std::string r_filename = opt::outfile_prefix + "_changes.tsv";
 	std::string v_filename = opt::outfile_prefix + "_variants.vcf";
- 	std::cerr << "After output file handles" << std::endl;
 	std::cerr << d_filename << std::endl;
 	ofstream dfout;
 	//ofstream rfout;
 	//ofstream vfout;
-	std::cerr << "Before dfout" << std::endl;
 	dfout.open(d_filename);
-        std::cerr << "After dfout.open" << std::endl;
 	//rfout.open(r_filename);
 	// printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
 
@@ -1872,7 +1845,6 @@ readAndCorrect(btllib::KmerBloomFilter& bloom, btllib::KmerBloomFilter& bloomrep
 				std::cout << contigName << std::endl;
 			}
 			if (seq_len >= opt::min_contig_len) {
-				std::cerr  << "Starting kmerize and Correct" << std::endl;
 				kmerizeAndCorrect(
 				    contigName, contigSeq, seq_len, bloom, bloomrep, dfout);
 			}
