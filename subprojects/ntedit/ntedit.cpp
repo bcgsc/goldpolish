@@ -947,6 +947,7 @@ roll(
     unsigned char& charOut,
     unsigned char& charIn)
 {
+
 	// quit if h_seq_i is out of scope
 	if (h_seq_i >= contigSeq.size() || h_node_index >= newSeq.size()) {
 		return false;
@@ -992,6 +993,7 @@ makeEdit(
     std::string& contigSeq,
     std::vector<seqNode>& newSeq)
 {
+
 	bool skipped_repeat = false;
 	std::string prev_insertion;
 	// make our edit
@@ -1169,6 +1171,7 @@ tryDeletion(
     btllib::KmerBloomFilter& bloomrep,
     std::string& deleted_bases)
 {
+
 	// set temporary values
 	uint64_t temp_fhVal = fhVal;
 	uint64_t temp_rhVal = rhVal;
@@ -1215,6 +1218,7 @@ tryDeletion(
 			}
 		}
 	}
+
 	if (opt::verbose) {
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present
 		          << std::endl;
@@ -1267,6 +1271,7 @@ tryIndels(
 	unsigned temp_best_edit_type = 0;
 	unsigned char charIn;
 	unsigned char charOut;
+
 	// try all of the combinations of indels starting with our index_char
 	for (int i = 0; i < num_tries[opt::max_insertions]; i++) {
 		// gather the insertion bases
@@ -1350,6 +1355,7 @@ tryIndels(
 				}
 			}
 		}
+
 		if (num_deletions <= opt::max_deletions) {
 			std::string deleted_bases;
 			unsigned del_support = tryDeletion(
@@ -1779,7 +1785,6 @@ readAndCorrect(btllib::KmerBloomFilter& bloom, btllib::KmerBloomFilter& bloomrep
 	std::string d_filename = opt::outfile_prefix + "_edited.fa";
 	std::string r_filename = opt::outfile_prefix + "_changes.tsv";
 	std::string v_filename = opt::outfile_prefix + "_variants.vcf";
-	std::cerr << d_filename << std::endl;
 	ofstream dfout;
 	//ofstream rfout;
 	//ofstream vfout;
@@ -1821,7 +1826,6 @@ readAndCorrect(btllib::KmerBloomFilter& bloom, btllib::KmerBloomFilter& bloomrep
 		bool stop = false;
 
 		while (true) {
-			std::cout << "Getting contig info" << std::endl;
 #pragma omp critical(reading)
 			{
 				if (!stop && kseq_read(seq) >= 0) {
@@ -1840,7 +1844,6 @@ readAndCorrect(btllib::KmerBloomFilter& bloom, btllib::KmerBloomFilter& bloomrep
 				break;
 			}
 			unsigned seq_len = contigSeq.length();
-			std::cout << "Getting sequence length" << std::endl;
 			if (opt::verbose) {
 				std::cout << contigName << std::endl;
 			}
@@ -1945,7 +1948,6 @@ main(int argc, char** argv)
 	}
 
 	// std::cout << opt::nthreads << " = thread no" << std::endl;
-        std::cerr << "STARTING NTEDIT" << std::endl;
 	time_t rawtime;
 	time(&rawtime);
 	//std::cout << "---------- running ntedit                           : " << ctime(&rawtime);

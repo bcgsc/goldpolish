@@ -15,7 +15,7 @@ jobs:
   - script: |
       source activate goldpolish_CI
       conda install --yes -c conda-forge mamba python=3.9
-      mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp=1.78.0 minimap2 ntlink btllib
+      mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib
     displayName: Install dependencies
   - script: |
       source activate goldpolish_CI
