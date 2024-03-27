@@ -1,9 +1,8 @@
 jobs:
 - job:
-  displayName: ubuntu-latest
+  displayName: ubuntu-latest-goldpolish
   pool:
     vmImage: 'ubuntu-latest'
-
   steps:
   - checkout: self
     persistCredentials: true
@@ -15,7 +14,7 @@ jobs:
   - script: |
       source activate goldpolish_CI
       conda install --yes -c conda-forge mamba python=3.9
-      mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib
+      mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib
     displayName: Install dependencies
   - script: |
       source activate goldpolish_CI
@@ -32,10 +31,9 @@ jobs:
     displayName: Test run for GoldPolish
 
 - job:
-  displayName: mac-latest
+  displayName: mac-latest-goldpolish
   pool:
     vmImage: 'macOS-latest'
-
   steps:
     - checkout: self
       persistCredentials: true
@@ -47,7 +45,7 @@ jobs:
     - script: |
         source activate goldpolish_CI
         conda install --yes -c conda-forge mamba python=3.9
-        mamba install --yes -c bioconda -c conda-forge compilers meson  boost-cpp minimap2 ntlink btllib llvm
+        mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm
       displayName: Install dependencies
     - script: |
         source activate goldpolish_CI
@@ -63,3 +61,127 @@ jobs:
         ./goldpolish_test.sh
       displayName: Test run for GoldPolish
       
+- job:
+  displayName: ubuntu-latest-goldpolish-target-ntlink
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    persistCredentials: true
+    submodules: true
+  - script: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: Add conda to PATH
+  - script: conda create --yes --quiet --name goldpolish_target_CI
+    displayName: Create Anaconda environment
+  - script: |
+      source activate goldpolish_target_CI
+      conda install --yes -c conda-forge mamba python=3.9
+      mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib snakemake intervaltree
+    displayName: Install dependencies
+  - script: |
+      source activate goldpolish_target_CI
+      meson build --prefix=$(pwd)/test_build
+      cd build
+      ninja install
+      ../test_build/bin/goldpolish --help
+    displayName: Compile GoldPolish-Target
+  - script: |
+      source activate goldpolish_target_CI
+      export PATH=$(pwd)/test_build/bin:$PATH
+      cd tests
+      ./goldpolish_target_ntlink_test.sh
+    displayName: Test run for GoldPolish-Target with ntLink
+
+- job:
+  displayName: mac-latest-goldpolish-target-ntlink
+  pool:
+    vmImage: 'macOS-latest'
+
+  steps:
+    - checkout: self
+      persistCredentials: true
+      submodules: true
+    - script: echo "##vso[task.prependpath]$CONDA/bin"
+      displayName: Add conda to PATH
+    - script: conda create --yes --quiet --name goldpolish_target_CI
+      displayName: Create Anaconda environment
+    - script: |
+        source activate goldpolish_target_CI
+        conda install --yes -c conda-forge mamba python=3.9
+        mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm snakemake intervaltree
+      displayName: Install dependencies
+    - script: |
+        source activate goldpolish_target_CI
+        meson build --prefix=$(pwd)/test_build
+        cd build
+        ninja install
+        ../test_build/bin/goldpolish --help
+      displayName: Compile GoldPolish-Target
+    - script: |
+        source activate goldpolish_target_CI
+        export PATH=$(pwd)/test_build/bin:$PATH
+        cd tests
+        ./goldpolish_target_ntlink_test.sh
+      displayName: Test run for GoldPolish-target with ntLink
+
+- job:
+  displayName: ubuntu-latest-goldpolish-target-minimap2
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    persistCredentials: true
+    submodules: true
+  - script: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: Add conda to PATH
+  - script: conda create --yes --quiet --name goldpolish_target_CI
+    displayName: Create Anaconda environment
+  - script: |
+      source activate goldpolish_target_CI
+      conda install --yes -c conda-forge mamba python=3.9
+      mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib snakemake intervaltree
+    displayName: Install dependencies
+  - script: |
+      source activate goldpolish_target_CI
+      meson build --prefix=$(pwd)/test_build
+      cd build
+      ninja install
+      ../test_build/bin/goldpolish --help
+    displayName: Compile GoldPolish-Target
+  - script: |
+      source activate goldpolish_target_CI
+      export PATH=$(pwd)/test_build/bin:$PATH
+      cd tests
+      ./goldpolish_target_minimap2_test.sh
+    displayName: Test run for GoldPolish-Target with minimap2
+
+- job:
+  displayName: mac-latest-goldpolish-target-minimap2
+  pool:
+    vmImage: 'macOS-latest'
+  steps:
+    - checkout: self
+      persistCredentials: true
+      submodules: true
+    - script: echo "##vso[task.prependpath]$CONDA/bin"
+      displayName: Add conda to PATH
+    - script: conda create --yes --quiet --name goldpolish_target_CI
+      displayName: Create Anaconda environment
+    - script: |
+        source activate goldpolish_target_CI
+        conda install --yes -c conda-forge mamba python=3.9
+        mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm snakemake intervaltree
+      displayName: Install dependencies
+    - script: |
+        source activate goldpolish_target_CI
+        meson build --prefix=$(pwd)/test_build
+        cd build
+        ninja install
+        ../test_build/bin/goldpolish --help
+      displayName: Compile GoldPolish-Target
+    - script: |
+        source activate goldpolish_target_CI
+        export PATH=$(pwd)/test_build/bin:$PATH
+        cd tests
+        ./goldpolish_target_minimap2_test.sh
+      displayName: Test run for GoldPolish-target with minimap2
