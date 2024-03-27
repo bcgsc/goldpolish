@@ -955,6 +955,9 @@ roll(
 	charOut = getCharacter(h_seq_i, newSeq[h_node_index], contigSeq);
 	increment(h_seq_i, h_node_index, newSeq);
 
+	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
+		return false;
+	}
 	increment(t_seq_i, t_node_index, newSeq);
 	// quit if t_seq_i is out of scope
 	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
@@ -1945,7 +1948,6 @@ main(int argc, char** argv)
 	}
 
 	// std::cout << opt::nthreads << " = thread no" << std::endl;
-
 	time_t rawtime;
 	time(&rawtime);
 	//std::cout << "---------- running ntedit                           : " << ctime(&rawtime);
