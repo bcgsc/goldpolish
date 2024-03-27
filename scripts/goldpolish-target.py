@@ -147,8 +147,8 @@ def main():
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"target --config f={args.fasta} l={args.length} t={args.t} "
-        f"mapper={mapper} bed={args.bed} p={args.prefix} reads={args.reads} "
-        f"s={s} x={args.mx_max_reads_per_10kbp} sensitive={args.sensitive} "
+        f"mapper={mapper} p={args.prefix} reads={args.reads} s={s} "
+        f"x={args.mx_max_reads_per_10kbp} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
 
