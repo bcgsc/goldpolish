@@ -1,13 +1,11 @@
 #!/bin/bash
-
 set -eux -o pipefail
 
 # Download the test data
 curl -L --output test_reads.fq https://www.bcgsc.ca/downloads/btl/goldrush/test/test_reads.fq
 
-
 # Run this demo to test your GoldRush installation
-echo "Launching GoldPolish-Target"
+echo "Launching GoldPolish-Target with minimap2"
 
 goldpolish --target --target_dev --minimap2 goldpolish_target_test_golden_path.fa test_reads.fq goldpolish_target_test_golden_path.targeted
 

@@ -42,8 +42,10 @@ def parse_args():
         default=100,
     )
     parser.add_argument(
-        "-x"
-        "--mx-max-reads-per-10kbp"
+        "-x",
+        "--mx-max-reads-per-10kbp",
+        help="x parameter for GoldPolish",
+        default=150
     )
     parser.add_argument("-r", "--reads", help="reads file", required=True)
 
@@ -125,8 +127,7 @@ def get_mapping_info(minimap2, ntLink):
         s_goldpolish = 40
     else:
         raise ValueError("Unknown mapping tool")
-    x_goldpolish = 150
-    return (mapper, s_goldpolish, x_goldpolish)
+    return (mapper, s_goldpolish)
 
 def cleanup(rand_str):
     files = [f for f in os.listdir() if os.path.isfile(f)]
@@ -138,18 +139,16 @@ def main():
     "Run goldpolish-target snakemake file"
     args = parse_args()
     base_dir = os.path.dirname(os.path.realpath(__file__))
-    mapping_info = get_mapping_info(
+    mapper, s = get_mapping_info(
         args.minimap2,
         args.ntLink,
     )
-
-    mapper, s, x = mapping_info[:3]
 
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"target --config f={args.fasta} l={args.length} t={args.t} "
         f"mapper={mapper} bed={args.bed} p={args.prefix} reads={args.reads} "
-        f"s={s} x={x} sensitive={args.sensitive} "
+        f"s={s} x={args.mx_max_reads_per_10kbp} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
 
@@ -157,6 +156,7 @@ def main():
     
     command += "benchmark=True " if args.benchmark else "benchmark=False "
     command += f"delete_intermediates=INTERMEDIATE_{rand_str}. " if not args.dev else ""
+    command += f"bed={args.bed}" if args.bed else ""
 
     if args.dry_run:
         command += " -n "

@@ -7,6 +7,7 @@ import btllib
 from collections import namedtuple
 
 Coordinate = namedtuple("Coordinate", "start end")
+min_gap_length = 1
 
 def parse_args():
     """Parses arguments passed in command line"""
@@ -58,15 +59,13 @@ def make_coord_dict(bed):
     return coord_dict_2
 
 
-def extract_masked_subsequences(sequence, name, length, writer):
-    """extracts lowercase sequences and returns list of sequences with l bp long flanking regions"""
+def extract_masked_subsequences(sequence, name, flank_length, writer):
+    """extracts lowercase sequences and returns list of sequences with flank_length bp long flanking regions"""
     gap_count = 1
     idx = 1  # index of subseqs
 
     subseqs = re.findall(r"([A-Z]+|[a-z]+)", sequence)
-    filtered_subseqs = (
-        []
-    )  # short uppercase seqs are appended to adjacent softmasked seqs
+    filtered_subseqs = [] # short uppercase seqs are appended to adjacent softmasked seqs
     filtered_subseqs.append(
         subseqs[0]
     )  # first item always appended, avoids 0-index issues
@@ -74,25 +73,29 @@ def extract_masked_subsequences(sequence, name, length, writer):
     while idx < len(subseqs):
         subseq = subseqs[idx]
         if subseq.isupper():
-            if len(subseq) >= 2 * length:  # surpases min length threshold
+            if len(subseq) >= 2 * flank_length:  # surpases min length threshold
                 filtered_subseqs.append(subseq)
             elif filtered_subseqs[-1].islower():
                 # append lower case subseq to previous subseq
                 filtered_subseqs[-1] = filtered_subseqs[-1] + subseq.lower()
+            else:
+                raise Exception("Unexpected order of softmasked subseqs")
         else:  # subseq is lower
             if filtered_subseqs[-1].isupper():
                 filtered_subseqs.append(subseq)
-            else:
+            elif filtered_subseqs[-1].islower():
                 # previous subseq is lower, need to concat with prev
                 filtered_subseqs[-1] = filtered_subseqs[-1] + subseq
+            else:
+                raise Exception("Unexpected order of softmasked subseqs")
         idx += 1
         
     idx = 0
 
     for subseq in filtered_subseqs:
-        if subseq.islower() and len(subseq) > 1:
-            flank_start = max(0, idx - length)
-            flank_end = min(len(sequence), idx + len(subseq) + length)
+        if subseq.islower() and len(subseq) > min_gap_length:
+            flank_start = max(0, idx - flank_length)
+            flank_end = min(len(sequence), idx + len(subseq) + flank_length)
             if flank_end >= flank_start:  # just in case
                 flanked_subseq = sequence[flank_start:flank_end]
 
@@ -107,16 +110,14 @@ def extract_masked_subsequences(sequence, name, length, writer):
         idx += len(subseq)
 
 
-def extract_subsequences_from_bed(sequence, name, length, writer, coords):
-    """extracts seqs with coordinates from bed file and returns sequences with l bp long flanks"""
+def extract_subsequences_from_bed(sequence, name, flank_length, writer, coords):
+    """extracts seqs with coordinates from bed file and returns sequences with flank_length bp long flanks"""
     if name in coords:
         count = 0
         coord_list = coords[name]
         idx = 1
 
-        filtered_coords = (
-            []
-        )  # short uppercase seqs are appended to adjacent coordinates
+        filtered_coords = [] # short uppercase seqs appended to adj coordinates
         filtered_coords.append(
             coord_list[0]
         )  # first item always appended, avoids 0-index issues
@@ -127,15 +128,15 @@ def extract_subsequences_from_bed(sequence, name, length, writer, coords):
 
             if (
                 int(coord.start) - int(prev_coord.end)
-            ) < 2 * length:  # length between adjacent coords too small
+            ) < 2 * flank_length:  # length between adjacent coords too small
                 filtered_coords[-1] = (prev_coord.start, coord.end)
             else:
                 filtered_coords.append(coord_list[idx])
             idx += 1
 
         for coord in filtered_coords:
-            start = max(0, int(coord[0]) - length)
-            end = min(len(sequence), int(coord[1]) + length)
+            start = max(0, int(coord[0]) - flank_length)
+            end = min(len(sequence), int(coord[1]) + flank_length)
 
             count += 1
 
@@ -150,7 +151,7 @@ def write_flanked_subsequence(subsequence, start_flank, end_flank, gap_name, wri
 
 
 def main():
-    "Parses fasta file to extract sequences + flanks"
+    """Parses fasta file to extract sequences + flanks"""
     args = parse_args()
     writer_fasta = btllib.SeqWriter(args.output, btllib.SeqWriter.FASTA)
 

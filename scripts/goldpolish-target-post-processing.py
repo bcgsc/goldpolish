@@ -22,8 +22,7 @@ def parse_args():
         "--output",
         help="name of output file",
         type=str,
-        required=True,
-        default="GoldPolish-Target_out_polished.fa",
+        required=True
     )
 
     # parser.add_argument("-v", "--version", action='version', version='version1')
@@ -47,7 +46,7 @@ def insert_seq(gap_coords, sequence):
 
     # just to check
     if start < len(sequence) - 1:
-        updated_seq.append(sequence[int(start) + 1 :])
+        updated_seq.append(sequence[int(start):])
     return "".join(updated_seq)
 
 
@@ -56,7 +55,7 @@ def make_seq_dict(gaps):
         gap_count_dict = {}
         for record in gap_reader:
             gap_name = record.id
-            gap_name_info = gap_name.split(".")
+            gap_name_info = gap_name.rsplit(".", 1)
             gap_count_dict[".".join(gap_name_info[:-1])] = gap_name_info[-1]
     return gap_count_dict
 
@@ -71,21 +70,24 @@ def insert_and_write_seqs(fasta, gaps, gap_dict, writer):
                 if name not in gap_dict:
                     writer.write(name, "", sequence)
                     continue
-                gap_name = gap_record.id.split(".")[0] + ".0"
+                gap_name = gap_record.id.rsplit(".", 1)[0] + ".0"
                 gap_coordinates = []
 
                 # making sure you don't increment past end of sequence with gap_reader.read()
-                while gap_name.split(".")[0] == name and int(
-                    gap_name.split(".")[1]
+                while gap_name.rsplit(".", 1)[0] == name and int(
+                    gap_name.rsplit(".", 1)[-1]
                 ) < int(gap_dict[name]):
                     gap_name = gap_record.id
                     gap_desc = gap_record.comment
                     gap_seq = gap_record.seq
+                    start = gap_desc.split("-")[0]
+                    end = gap_desc.split("-")[1]
+
                     gap_coordinates.append(
                         (
                             gap_name,
-                            gap_desc.split("-")[0],
-                            gap_desc.split("-")[1],
+                            start,
+                            end,
                             gap_seq,
                         )
                     )
@@ -104,7 +106,6 @@ def main():
 
     insert_and_write_seqs(args.fasta, args.gaps, gap_count_dict, writer)
     writer.close()
-
 
 if __name__ == "__main__":
     main()

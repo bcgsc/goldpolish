@@ -78,15 +78,15 @@ def parse_description(description):
 
 def populate_trees(trees, name, interval):
     """adds intervals to the interval trees in tree_dict"""
-    name_index = name.split(".")
-    trees[name_index[0]].addi(interval.begin, interval.end, name)
+    name_index = name.rsplit(".", 1)[0]
+    trees[name_index].addi(interval.begin, interval.end, name)
 
 def make_interval_tree(tree_dict, args):
     "Parses fasta sequences"
     with btllib.SeqReader(args.gaps, btllib.SeqReaderFlag.LONG_MODE) as reader:
         for record in reader:
             seq_name, seq_description = record.id, record.comment
-            generic_name = seq_name.split(".")[0]
+            generic_name = seq_name.rsplit(".", 1)[0]
             if generic_name not in tree_dict:
                 tree_dict[generic_name] = IntervalTree()
             seq_interval = parse_description(seq_description)
@@ -118,6 +118,10 @@ def update_paf_file(args, tree_dict):
                 new_row = PafFileRow(row)
                 # if start/end position maps to gap sequence, updates position
                 tree_overlap = tree.overlap(start_pos, end_pos)
+
+                if len(tree_overlap) > 1:
+                    raise RuntimeError('start/end position erroneously mapped to >1 gap sequence')
+
                 if tree_overlap:
                     update_row = True  # update row in df
                     seq_interval = list(tree_overlap)[0]
