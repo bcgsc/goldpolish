@@ -56,6 +56,7 @@ rule run_ntLink_pair:
             benchmarking=expand("{benchmark_path} -o {prefix}.ntLink_pair.time", benchmark_path=benchmark_path, prefix=prefix) if benchmark else []
     shell: "{params.benchmarking} ntLink pair target={input.fa} reads={input.reads} {params.options}"
 
+# renames files to have the intermediate value to it gets deleted during cleanup
 rule update_ntLink_pair_output_name:
     input: paf=rules.run_ntLink_pair.output.paf,
            verbose_mapping=rules.run_ntLink_pair.output.verbose_mapping,

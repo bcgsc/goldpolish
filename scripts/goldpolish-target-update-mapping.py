@@ -8,19 +8,21 @@ import btllib
 
 class PafFileRow:
     """Represents row found in paf file"""
-    def __init__(self, paf_file):
-        self.query_name = paf_file[0]
-        self.query_len = int(paf_file[1])
-        self.query_start = int(paf_file[2])
-        self.query_end = int(paf_file[3])
-        self.relative_strand = paf_file[4]
-        self.target_name = paf_file[5]
-        self.target_length = int(paf_file[6])
-        self.target_start = int(paf_file[7])
-        self.target_end = int(paf_file[8])
-        self.num_matches = int(paf_file[9])
-        self.aln_length = int(paf_file[10])
-        self.quality = int(paf_file[11])
+    def __init__(self, query_name, query_len, query_start, query_end, relative_strand,
+                 target_name, target_length, target_start, target_end, num_matches,
+                 aln_length, quality):
+        self.query_name = query_name
+        self.query_len = int(query_len)
+        self.query_start = int(query_start)
+        self.query_end = int(query_end)
+        self.relative_strand = relative_strand
+        self.target_name = target_name
+        self.target_length = int(target_length)
+        self.target_start = int(target_start)
+        self.target_end = int(target_end)
+        self.num_matches = int(num_matches)
+        self.aln_length = int(aln_length)
+        self.quality = int(quality)
 
     def row_to_list(self):
         """Returns class object as a list"""
@@ -102,8 +104,7 @@ def update_paf_file(args, tree_dict):
         reader = csv.reader(f_in, delimiter="\t", quotechar='"')
         # iterates through all reads in the paffile
         for row in reader:
-            row_info = PafFileRow(row)
-
+            row_info = PafFileRow(*row) 
             contig_name = row_info.target_name
             start_pos = int(row_info.target_start)
             end_pos = int(row_info.target_end)
@@ -115,12 +116,9 @@ def update_paf_file(args, tree_dict):
             # if the contig is in the tree dictionary, checks for mapped minimizers within gap
             if contig_name in tree_dict:
                 tree = tree_dict[contig_name]
-                new_row = PafFileRow(row)
+                new_row = PafFileRow(*row)
                 # if start/end position maps to gap sequence, updates position
                 tree_overlap = tree.overlap(start_pos, end_pos)
-
-                if len(tree_overlap) > 1:
-                    raise RuntimeError('start/end position erroneously mapped to >1 gap sequence')
 
                 if tree_overlap:
                     update_row = True  # update row in df
