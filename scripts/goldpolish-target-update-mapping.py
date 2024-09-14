@@ -65,7 +65,7 @@ def parse_args():
         required=True,
         default="GoldPolish-Target_mapping_updated",
     )
-    # parser.add_argument("-v", "--version", action='version', version='version1')
+    parser.add_argument("-v", "--version", action='version', version='version1')
     return parser.parse_args()
 
 def parse_description(description):
