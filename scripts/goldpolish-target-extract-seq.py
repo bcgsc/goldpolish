@@ -38,7 +38,6 @@ def parse_args():
         required=False,
         default=64,
     )
-    # parser.add_argument("-v", "--version", action='version', version='version1')
     return parser.parse_args()
 
 

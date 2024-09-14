@@ -25,6 +25,7 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
 The dependencies can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
 conda install -c conda-forge -c bioconda compilers meson ninja boost-cpp btllib ntlink minimap2 snakemake intervaltree
+
 ```
 
 ## Citation
@@ -88,7 +89,7 @@ optional arguments:
 ```
 
 ## GoldPolish-Target
-GoldPolish can be run in a targeted mode, polishing only specified regions of the assembly (either by looking for and polishing softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command. Example command that runs GoldPolish-Target with a BED file to specify target regions:
+GoldPolish can be run in a targeted mode, polishing specified regions of the assembly (either by looking for softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command. Example command that runs GoldPolish-Target with a BED file to specify target regions:
 ```
 goldpolish --target --bed polishing_coordinates.bed assembly.fa reads.fa assembly-polished.fa 
 ```  
