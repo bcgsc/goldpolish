@@ -30,6 +30,7 @@ SeqIndex::SeqIndex(const std::string& seqs_filepath)
         /*id_startbyte = byte + 1;*/
         id_endbyte = endbyte;
         id = btllib::split(line, " ")[0].substr(1);
+        id = btllib::split(id, "\t")[0];
       } else if (i % 4 == 1) {
         seq_start = id_endbyte + 1;
         seq_len = endbyte - id_endbyte - 1;
