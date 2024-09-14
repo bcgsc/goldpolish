@@ -5,12 +5,11 @@ import csv
 from intervaltree import Interval, IntervalTree
 import btllib
 
-
 class PafFileRow:
     """Represents row found in paf file"""
     def __init__(self, query_name, query_len, query_start, query_end, relative_strand,
                  target_name, target_length, target_start, target_end, num_matches,
-                 aln_length, quality):
+                 aln_length, quality, *args):
         self.query_name = query_name
         self.query_len = int(query_len)
         self.query_start = int(query_start)
@@ -41,7 +40,6 @@ class PafFileRow:
             self.quality,
         ]
 
-
 def parse_args():
     """Reads input arguments from command line"""
     parser = argparse.ArgumentParser()
@@ -70,13 +68,11 @@ def parse_args():
     # parser.add_argument("-v", "--version", action='version', version='version1')
     return parser.parse_args()
 
-
 def parse_description(description):
     """parses description of fasta file and returns corresponding coordinate interval"""
     start = int(description.split("-")[0])
     end = int(description.split("-")[1]) + 1
     return Interval(start, end)
-
 
 def populate_trees(trees, name, interval):
     """adds intervals to the interval trees in tree_dict"""
@@ -157,7 +153,6 @@ def update_paf_file(args, tree_dict):
 
                 if update_row:
                     writer.writerow(new_row_list)
-
 
 def main():
     "Run update mapping file"
