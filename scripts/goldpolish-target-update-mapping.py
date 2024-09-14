@@ -4,6 +4,7 @@ import argparse
 import csv
 from intervaltree import Interval, IntervalTree
 import btllib
+import warnings
 
 class PafFileRow:
     """Represents row found in paf file"""
@@ -114,7 +115,8 @@ def update_paf_file(args, tree_dict):
                 new_row = PafFileRow(*row)
                 # if start/end position maps to gap sequence, updates position
                 tree_overlap = tree.overlap(start_pos, end_pos)
-
+                if len(tree_overlap) > 1:
+                    warnings.warn("Tree dictionary contains more than one item.", UserWarning)
                 if tree_overlap:
                     update_row = True  # update row in df
                     seq_interval = list(tree_overlap)[0]
