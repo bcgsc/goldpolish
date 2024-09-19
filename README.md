@@ -84,8 +84,8 @@ optional arguments:
                         GoldPolish-Target flank length (if --target specified) (Default: 64)
   --bed BED             BED file specifying target coordinates (if --target specified)
   --softmask            Target coordinates determined from softmasked regions in the input assembly (if --target specified)
-  --k_ntlink            k-mer size used for ntLink mappings (if --ntlink specified) (Default: 88)
-  --w_ntlink            Window size used for ntLink mappings (if --ntlink specified) (Default: 1000)
+  --k-ntlink            k-mer size used for ntLink mappings (if --ntlink specified) (Default: 88)
+  --w-ntlink            Window size used for ntLink mappings (if --ntlink specified) (Default: 1000)
 ```
 
 ## GoldPolish-Target
