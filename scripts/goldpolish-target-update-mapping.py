@@ -1,10 +1,9 @@
 """Updates verbose mapping file based on gap sequences and their flanks """
-# imports
 import argparse
 import csv
+import warnings
 from intervaltree import Interval, IntervalTree
 import btllib
-import warnings
 
 class PafFileRow:
     """Represents row found in paf file"""
@@ -93,7 +92,7 @@ def make_interval_tree(tree_dict, args):
 
 def update_paf_file(args, tree_dict):
     "Updates paf file based on new coordinate system"
-    with open(args.mapping, encoding="utf-8") as f_in, open(
+    with open(args.mapping, "r", encoding="utf-8") as f_in, open(
         args.output, "w", encoding="utf-8"
     ) as f_out:
         writer = csv.writer(f_out, delimiter="\t")
@@ -102,10 +101,10 @@ def update_paf_file(args, tree_dict):
         for row in reader:
             row_info = PafFileRow(*row) 
             contig_name = row_info.target_name
-            start_pos = int(row_info.target_start)
-            end_pos = int(row_info.target_end)
-            query_start = int(row_info.query_start)
-            query_end = int(row_info.query_end)
+            start_pos = row_info.target_start
+            end_pos = row_info.target_end
+            query_start = row_info.query_start
+            query_end = row_info.query_end
 
             update_row = False
 

@@ -7,9 +7,9 @@ import argparse
 import os
 import shlex
 import subprocess
-import btllib
 from random import choice
 from string import ascii_uppercase
+import btllib
 
 def parse_args():
     """Parses Arguments passed by users via CLI"""

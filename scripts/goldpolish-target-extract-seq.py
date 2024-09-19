@@ -1,13 +1,12 @@
 """Extracts regions to polish with additional flanks into fasta file"""
-# imports
 import argparse
 import csv
 import re
-import btllib
 from collections import namedtuple
+import btllib
 
 Coordinate = namedtuple("Coordinate", "start end")
-min_gap_length = 1
+MIN_GAP_LENGTH = 1
 
 def parse_args():
     """Parses arguments passed in command line"""
@@ -28,7 +27,7 @@ def parse_args():
         help="prefix of output file [<output>.fa]",
         type=str,
         required=False,
-        default="GoldPolish-Target_extracted_gaps.fa",
+        default="GoldPolish-Target_extracted_gaps",
     )
     parser.add_argument(
         "-l",
@@ -92,10 +91,10 @@ def extract_masked_subsequences(sequence, name, flank_length, writer):
     idx = 0
 
     for subseq in filtered_subseqs:
-        if subseq.islower() and len(subseq) > min_gap_length:
+        if subseq.islower() and len(subseq) > MIN_GAP_LENGTH:
             flank_start = max(0, idx - flank_length)
             flank_end = min(len(sequence), idx + len(subseq) + flank_length)
-            if flank_end >= flank_start:  # just in case
+            if flank_end > flank_start:  # just in case
                 flanked_subseq = sequence[flank_start:flank_end]
 
                 write_flanked_subsequence(

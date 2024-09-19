@@ -1,8 +1,6 @@
 """Inserts polished gap sequences back into the original assembly"""
-# imports
 import argparse
 import btllib
-
 
 def parse_args():
     """parses args passed through command line"""
@@ -49,6 +47,7 @@ def insert_seq(gap_coords, sequence):
 
 
 def make_seq_dict(gaps):
+    "Returns a dictionary containing the gap sequence information"
     with btllib.SeqReader(gaps, btllib.SeqReaderFlag.LONG_MODE) as gap_reader:
         gap_count_dict = {}
         for record in gap_reader:

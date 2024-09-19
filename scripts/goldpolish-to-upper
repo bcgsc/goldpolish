@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-
 import argparse
-
 import btllib
-
 
 def get_cli_args():
     parser = argparse.ArgumentParser(
