@@ -19,10 +19,13 @@ GoldPolish (aka GoldRush-Edit) is an efficient draft genome assembly polishing t
   * [btllib](https://github.com/bcgsc/btllib) v1.6.2+
   * [ntLink](https://github.com/bcgsc/ntlink) v1.3.5+
   * [minimap2](https://github.com/lh3/minimap2)
+  * [snakemake](https://github.com/snakemake/snakemake)
+  * [intervaltree](https://github.com/chaimleib/intervaltree) 
 
 The dependencies can be installed through [Conda](https://docs.conda.io/en/latest/) package manager:
 ```
-conda install -c conda-forge -c bioconda compilers meson ninja boost-cpp btllib ntlink minimap2
+conda install -c conda-forge -c bioconda compilers meson ninja boost-cpp btllib ntlink minimap2 snakemake intervaltree
+
 ```
 
 ## Citation
@@ -76,4 +79,17 @@ optional arguments:
   --ntlink              Run ntLink to generate read mappings (default).
   --minimap2            Run minimap2 to generate read mappings.
   --mappings MAPPINGS   Use provided pre-generated mappings. Accepted formats are PAF, SAM, and *.verbose_mapping.tsv from ntLink.
+  --target              Run GoldPolish in targeted mode
+  -l LENGTH, --length LENGTH
+                        GoldPolish-Target flank length (if --target specified) (Default: 64)
+  --bed BED             BED file specifying target coordinates (if --target specified)
+  --softmask            Target coordinates determined from softmasked regions in the input assembly (if --target specified)
+  --k-ntlink            k-mer size used for ntLink mappings (if --ntlink specified) (Default: 88)
+  --w-ntlink            Window size used for ntLink mappings (if --ntlink specified) (Default: 1000)
 ```
+
+## GoldPolish-Target
+GoldPolish can be run in a targeted mode, polishing specified regions of the assembly (either by looking for softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command. Example command that runs GoldPolish-Target with a BED file to specify target regions:
+```
+goldpolish --target --bed polishing_coordinates.bed assembly.fa reads.fa assembly-polished.fa 
+```  
