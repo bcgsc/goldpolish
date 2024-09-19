@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import argparse
 import os
 import math
@@ -163,7 +164,6 @@ def get_cli_args():
     target_group = parser.add_mutually_exclusive_group()
     target_group.add_argument(
         "--bed",
-        default="",
         help="BED file specifying target coordinates (if --target specified)"
     )
     target_group.add_argument(
@@ -604,7 +604,7 @@ def run_goldpolish_target(fasta, reads, prefix, length, k, w, minimap2, sensitiv
 
     sp.call(command)
     btllib.log_info("Targeted polishing finished")
-    exit(0)
+    sys.exit(0)
 
 if __name__ == "__main__":
     args = get_cli_args()
