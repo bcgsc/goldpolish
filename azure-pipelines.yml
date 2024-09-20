@@ -13,7 +13,7 @@ jobs:
     displayName: Create Anaconda environment
   - script: |
       source activate goldpolish_CI
-      conda install --yes -c conda-forge mamba python=3.9
+      conda install --yes -c conda-forge mamba python
       mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib
     displayName: Install dependencies
   - script: |
@@ -44,7 +44,7 @@ jobs:
       displayName: Create Anaconda environment
     - script: |
         source activate goldpolish_CI
-        conda install --yes -c conda-forge mamba python=3.9
+        conda install --yes -c conda-forge mamba python
         mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm
       displayName: Install dependencies
     - script: |
@@ -75,7 +75,7 @@ jobs:
     displayName: Create Anaconda environment
   - script: |
       source activate goldpolish_target_CI
-      conda install --yes -c conda-forge mamba python=3.9
+      conda install --yes -c conda-forge mamba python
       mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib snakemake intervaltree
     displayName: Install dependencies
   - script: |
@@ -107,7 +107,7 @@ jobs:
       displayName: Create Anaconda environment
     - script: |
         source activate goldpolish_target_CI
-        conda install --yes -c conda-forge mamba python=3.9
+        conda install --yes -c conda-forge mamba python
         mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm snakemake intervaltree
       displayName: Install dependencies
     - script: |
@@ -138,7 +138,7 @@ jobs:
     displayName: Create Anaconda environment
   - script: |
       source activate goldpolish_target_CI
-      conda install --yes -c conda-forge mamba python=3.9
+      conda install --yes -c conda-forge mamba python
       mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib snakemake intervaltree
     displayName: Install dependencies
   - script: |
@@ -169,7 +169,7 @@ jobs:
       displayName: Create Anaconda environment
     - script: |
         source activate goldpolish_target_CI
-        conda install --yes -c conda-forge mamba python=3.9
+        conda install --yes -c conda-forge mamba python
         mamba install --yes -c bioconda -c conda-forge compilers meson boost-cpp minimap2 ntlink btllib llvm snakemake intervaltree
       displayName: Install dependencies
     - script: |

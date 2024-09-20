@@ -7,19 +7,19 @@ onsuccess:
     shutil.rmtree(".snakemake", ignore_errors=True)
 
 # Read in parameters
-fasta = config["f"] if "f" in config else "Must specify input assembly 'fasta'"
+fasta = config["fasta"] if "fasta" in config else "Must specify input assembly 'fasta'"
 reads = config["reads"] if "reads" in config else "Must specify reads"
-length = config["l"] if "l" in config else 64
+length = config["length"] if "length" in config else 64
 mappings = config["mappings"] if "mappings" in config else ""
 agp = config["agp"] if "agp" in config else ""
 mapper = config["mapper"] if "mapper" in config else ""
 bed = config["bed"] if "bed" in config else ""
 k_ntlink = config["k_ntlink"] if "k_ntlink" in config else 88
 w_ntlink = config["w_ntlink"] if "w_ntlink" in config else 1000
-prefix = config["p"] if "p" in config else "GoldPolish-Target_out"
-s = config["s"] if "s" in config else 100
-x = config["x"] if "x" in config else 150
-max_threads = config["t"] if "t" in config else 48
+prefix = config["prefix"] if "prefix" in config else "GoldPolish-Target_out"
+s = config["s_param"] if "s_param" in config else 100
+x = config["x_param"] if "x_param" in config else 150
+max_threads = config["threads"] if "threads" in config else 48
 benchmark = config["benchmark"] if "benchmark" in config else False
 
 sensitive = config["sensitive"] if "sensitive" in config else True
