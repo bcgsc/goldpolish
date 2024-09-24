@@ -9,7 +9,7 @@ curl -L --output test_reads.fq https://www.bcgsc.ca/downloads/btl/goldrush/test/
 # Run this demo to test your GoldRush installation
 echo "Launching GoldPolish-Target with ntlink"
 
-goldpolish --target --target_dev --ntlink goldpolish_target_test_golden_path.fa test_reads.fq goldpolish_target_test_golden_path.targeted
+goldpolish --target --target_dev --ntlink goldpolish_target_test_golden_path.fa test_reads.fq goldpolish_target_test_golden_path.targeted.fa
 
 if cmp --silent -- goldpolish_target_test_golden_path.targeted.polished.fa $(pwd)/expected_files/ntlink/goldpolish_target_test_golden_path.targeted.polished.expected.fa && \
    cmp --silent -- goldpolish_target_test_golden_path.targeted.gaps.i.fa $(pwd)/expected_files/ntlink/goldpolish_target_test_golden_path.targeted.gaps.expected.fa && \

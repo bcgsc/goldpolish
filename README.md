@@ -91,8 +91,8 @@ optional arguments:
 ## GoldPolish-Target
 GoldPolish can be run in a targeted mode, polishing specified regions of the assembly (either by looking for softmasked sequences or by using target coordinates that are specified in a BED file). To run GoldPolish-Target, use the `--target` flag for the GoldPolish command.
 
-To polish a draft assembly named `assembly.fa` with long reads named `reads.fa`, where targeted polishing coordinates are stored in a BED file named `polishing_coordinates.bed`, and store the results at `assembly-polished.fa`, run the following:
+To polish a draft assembly named `assembly.fa` with long reads named `reads.fa`, where targeted polishing coordinates are stored in a BED file named `polishing_coordinates.bed`, and store the results in a FASTA file called `assembly-polished.fa`, run the following:
 
 ```
-goldpolish --target --bed polishing_coordinates.bed assembly.fa reads.fa assembly-polished.fa 
+goldpolish --target --bed polishing_coordinates.bed assembly.fa reads.fa assembly-polished.fa
 ```  
