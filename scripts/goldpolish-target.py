@@ -28,9 +28,9 @@ def parse_args():
         default=64,
     )
     parser.add_argument(
-        "-p",
-        "--prefix",
-        help="Prefix of output file",
+        "-o",
+        "--output",
+        help="Name of output file",
         type=str,
         required=False,
         default="GoldPolish-Target_out",
@@ -129,6 +129,12 @@ def get_mapping_info(minimap2, ntLink):
         raise ValueError("Unknown mapping tool")
     return (mapper, s_goldpolish)
 
+def split_output_file_name(output_file):
+    """Removes .fa from end of output file to create a prefix"""
+    if output_file.endswith('.fa'):
+        return output_file[:-3]
+    return output_file
+
 def cleanup(rand_str):
     files = [f for f in os.listdir() if os.path.isfile(f)]
     for file in files:
@@ -144,10 +150,12 @@ def main():
         args.ntLink,
     )
 
+    prefix = split_output_file_name(args.output)
+
     command = (
         f"snakemake -s {base_dir}/goldpolish-target-run-pipeline.smk --cores {args.t} "
         f"target --config fasta={args.fasta} length={args.length} threads={args.t} "
-        f"mapper={mapper} prefix={args.prefix} reads={args.reads} s_param={s} "
+        f"mapper={mapper} output={prefix} reads={args.reads} s_param={s} "
         f"x_param={args.mx_max_reads_per_10kbp} sensitive={args.sensitive} "
         f"k_ntlink={args.k_ntlink} w_ntlink={args.w_ntlink} "
     )
