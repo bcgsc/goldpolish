@@ -130,9 +130,13 @@ def get_mapping_info(minimap2, ntLink):
     return (mapper, s_goldpolish)
 
 def split_output_file_name(output_file):
-    """Removes .fa from end of output file to create a prefix"""
+    """Removes suffix from end of output file to create a prefix"""
     if output_file.endswith('.fa'):
         return output_file[:-3]
+    elif output_file.endswith('.fasta'):
+        return output_file[:-6]
+    elif output_file.endswith('.fna'):
+        return output_file[:-4]
     return output_file
 
 def cleanup(rand_str):
