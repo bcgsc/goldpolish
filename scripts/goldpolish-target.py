@@ -33,7 +33,7 @@ def parse_args():
         help="Name of output file",
         type=str,
         required=False,
-        default="GoldPolish-Target_out",
+        default="GoldPolish-Target_out.fa",
     )
     parser.add_argument(
         "-s",
