@@ -17,6 +17,7 @@ bed = config["bed"] if "bed" in config else ""
 k_ntlink = config["k_ntlink"] if "k_ntlink" in config else 88
 w_ntlink = config["w_ntlink"] if "w_ntlink" in config else 1000
 prefix = config["prefix"] if "prefix" in config else "GoldPolish-Target_out"
+output_file = config["output"] if "output" in config else "GoldPolish-Target_out.fa"
 s = config["s_param"] if "s_param" in config else 100
 x = config["x_param"] if "x_param" in config else 150
 max_threads = config["threads"] if "threads" in config else 48
@@ -39,7 +40,7 @@ if benchmark:
 script_path = workflow.basedir
 
 rule target:
-    input: expand("{prefix}.polished.fa", prefix=prefix),
+    input: expand("{output_file}", output_file=output_file),
            expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate),
            expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate),
            expand("{prefix}.unpolished.{mapper}.{intermediate}paf", prefix=prefix, intermediate=intermediate, mapper=mapper),
@@ -103,7 +104,7 @@ rule run_goldpolish:
 
 rule run_post_processing:
     input: expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate)
-    output: "{prefix}.polished.fa"
+    output: "{output_file}"
     params: options=expand("-f {fasta}", fasta=fasta),
             path_to_script=expand("{script_path}/goldpolish-target-post-processing.py", script_path=script_path),
             benchmarking=expand("{benchmark_path} -o {{prefix}}.post_processing.time", benchmark_path=benchmark_path) if benchmark else []
