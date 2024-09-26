@@ -40,7 +40,7 @@ if benchmark:
 script_path = workflow.basedir
 
 rule target:
-    input: expand("{prefix}.polished.fa", prefix=prefix),
+    input: expand("{output}", output=output),
            expand("{prefix}.gaps.{intermediate}fa", prefix=prefix, intermediate=intermediate),
            expand("{prefix}.gaps.goldpolished.{intermediate}fa", prefix=prefix, intermediate=intermediate),
            expand("{prefix}.unpolished.{mapper}.{intermediate}paf", prefix=prefix, intermediate=intermediate, mapper=mapper),
