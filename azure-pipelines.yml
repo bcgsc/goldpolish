@@ -47,7 +47,7 @@ jobs:
         ~/miniforge3/bin/conda init zsh
         export CONDA=$(realpath ~/miniforge3/bin)
         echo "##vso[task.prependpath]$CONDA"
-        displayName: Install conda
+      displayName: Install conda
     - script: conda create --yes --quiet --name goldpolish_CI
       displayName: Create Anaconda environment
     - script: |
