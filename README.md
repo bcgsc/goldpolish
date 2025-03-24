@@ -33,6 +33,12 @@ If you use GoldPolish in your research, please cite:
 
 Wong J, Coombe L, Nikolić V, Zhang E, Nip KM, Sidhu P, Warren RL and Birol I (2023). Linear time complexity de novo long read genome assembly with GoldRush. Nature Communications, 14(1), 2906. https://doi.org/10.1038/s41467-023-38716-x
 
+and 
+
+Zhang E, Coombe L, Wong J. Warren RL, Birol I. 2025. GoldPolish-Target: Targeted long-read genome assembly polishing. BMC Bioinformatics. 26, 78. DOI: https://doi.org/10.1186/s12859-025-06091-7
+
+
+
 ## Installation
 
 To build GoldPolish and install it at `$GOLDPOLISH_PREFIX`, run the following commands from within the `goldpolish` directory:
